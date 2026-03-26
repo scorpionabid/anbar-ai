@@ -1,0 +1,123 @@
+services:
+
+  # ─── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: anbar_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - anbar_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"     # host:5435 → no conflict with atis(5433) or supabase(54332)
+    networks:
+      - anbar_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: anbar_redis
+    restart: unless-stopped
+    volumes:
+      - anbar_redis_data:/data
+    networks:
+      - anbar_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Redis intentionally NOT exposed to host — internal only
+
+  # ─── Backend (FastAPI) ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: anbar_backend
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./backend:/app        # hot-reload in dev
+    ports:
+      - "8010:8000"           # host:8010 → no conflict with atis(8000)
+    networks:
+      - anbar_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ─── Celery Worker ─────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: anbar_worker
+    restart: unless-stopped
+    env_file: .env
+    command: celery -A app.core.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
+    networks:
+      - anbar_network
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  # ─── Frontend (Next.js) ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev          # uses dev stage with hot-reload
+    container_name: anbar_frontend
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./frontend/src:/app/src       # hot-reload in dev
+    ports:
+      - "3010:3000"           # host:3010 → no conflict with atis(3000) or quiz(3005)
+    networks:
+      - anbar_network
+    depends_on:
+      - backend
+
+  # ─── Nginx (Reverse Proxy) ─────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: anbar_nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8090:80"             # host:8090 — single entry point
+    networks:
+      - anbar_network
+    depends_on:
+      - backend
+      - frontend
+
+# ─── Networks ────────────────────────────────────────────────────────────────
+networks:
+  anbar_network:
+    name: anbar_network
+    driver: bridge
+
+# ─── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  anbar_postgres_data:
+    name: anbar_postgres_data
+  anbar_redis_data:
+    name: anbar_redis_data
