@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import Sidebar from "@/components/Sidebar";
@@ -12,14 +12,20 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const accessToken = useAuthStore((s) => s.accessToken);
+  const accessToken = useAuthStore((s: any) => s.accessToken);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !accessToken) {
       router.replace("/login");
     }
-  }, [accessToken, router]);
+  }, [accessToken, router, mounted]);
 
+  if (!mounted) return null;
   if (!accessToken) return null;
 
   return (
