@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import ForeignKey, Numeric, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -39,6 +39,7 @@ class Product(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     sku: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    unit_of_measure: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "ədəd", "kq", "litr"
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 
     tenant: Mapped["Tenant"] = relationship(back_populates="products")
@@ -61,7 +62,10 @@ class ProductVariant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     sku: Mapped[str] = mapped_column(String(100), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0)
-    attributes: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON string: {"color":"red","size":"L"}
+    cost_price: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)  # COGS - mənfəət hesabı üçün
+    barcode: Mapped[str | None] = mapped_column(String(100), nullable=True)  # EAN/UPC - mağaza skaner + marketplace
+    weight: Mapped[float | None] = mapped_column(Numeric(8, 3), nullable=True)  # kg - çatdırılma xərci
+    attributes: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # {"color":"red","size":"L"}
 
     product: Mapped["Product"] = relationship(back_populates="variants")
     inventory: Mapped[list["Inventory"]] = relationship(back_populates="variant")

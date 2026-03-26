@@ -3,47 +3,44 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import { useUIStore } from "@/stores/uiStore";
+import { 
+  LayoutDashboard, 
+  Boxes, 
+  Package, 
+  Warehouse, 
+  LogOut, 
+  ChevronLeft, 
+  ChevronRight,
+  Menu
+} from "lucide-react";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 const navItems = [
   {
     href: "/dashboard",
     label: "Dashboard",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
+    icon: LayoutDashboard,
   },
   {
     href: "/dashboard/inventory",
     label: "Inventory",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-      </svg>
-    ),
+    icon: Boxes,
   },
   {
     href: "/dashboard/products",
     label: "Products",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-      </svg>
-    ),
+    icon: Package,
   },
   {
     href: "/dashboard/warehouses",
     label: "Warehouses",
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-      </svg>
-    ),
+    icon: Warehouse,
   },
 ];
 
@@ -52,6 +49,7 @@ export default function Sidebar() {
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
+  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
 
   function handleLogout() {
     logout();
@@ -60,50 +58,98 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-60 bg-gray-900 text-white flex flex-col shrink-0">
-      <div className="px-5 py-6 border-b border-gray-800">
-        <p className="text-lg font-bold tracking-wide text-white">ANBAR</p>
-        <p className="text-xs text-gray-500 mt-0.5">Inventory & Sales</p>
+    <aside 
+      className={cn(
+        "bg-gray-900 text-white flex flex-col shrink-0 transition-all duration-300 ease-in-out border-r border-gray-800",
+        isSidebarCollapsed ? "w-20" : "w-64"
+      )}
+    >
+      {/* Header */}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-800">
+        {!isSidebarCollapsed && (
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-lg font-bold tracking-tight text-blue-500 truncate">ANBAR</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold truncate">Inventory Core</span>
+          </div>
+        )}
+        {isSidebarCollapsed && (
+          <div className="w-full flex justify-center">
+            <span className="text-xl font-bold text-blue-500">A</span>
+          </div>
+        )}
+        <button 
+          onClick={toggleSidebar}
+          className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
+          const Icon = item.icon;
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
+          
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              title={isSidebarCollapsed ? item.label : ""}
+              className={cn(
+                "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative",
                 isActive
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
-              }`}
+                  ? "bg-blue-600/10 text-blue-500"
+                  : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
+              )}
             >
-              {item.icon}
-              {item.label}
+              <Icon size={20} className={cn("shrink-0", isActive && "text-blue-500")} />
+              {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+              
+              {/* Active Indicator */}
+              {isActive && (
+                <div className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full" />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-gray-800 space-y-1">
+      {/* Footer / User Profile */}
+      <div className="p-3 border-t border-gray-800 space-y-2">
         {user && (
-          <p className="px-3 py-1 text-xs text-gray-500 truncate">{user.email}</p>
+          <div className={cn(
+            "flex items-center gap-3 p-2 rounded-xl bg-gray-800/30",
+            isSidebarCollapsed ? "justify-center" : "px-3"
+          )}>
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+              <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-medium text-gray-200 truncate">{user.full_name || "User"}</span>
+                <span className="text-[10px] text-gray-500 truncate">{user.email}</span>
+              </div>
+            )}
+          </div>
         )}
+        
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all",
+            isSidebarCollapsed && "justify-center"
+          )}
+          title={isSidebarCollapsed ? "Sign out" : ""}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Sign out
+          <LogOut size={20} className="shrink-0" />
+          {!isSidebarCollapsed && <span>Sign out</span>}
         </button>
       </div>
     </aside>
   );
 }
+

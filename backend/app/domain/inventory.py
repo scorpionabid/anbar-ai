@@ -1,7 +1,8 @@
 import enum
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,6 +34,8 @@ class Inventory(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     reserved_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     incoming_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reorder_point: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # bu həddə enəndə xəbərdarlıq
+    last_counted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # son fiziki sayım
 
     warehouse: Mapped["Warehouse"] = relationship(back_populates="inventory")
     variant: Mapped["ProductVariant"] = relationship(back_populates="inventory")
@@ -84,8 +87,6 @@ class StockMovement(UUIDPrimaryKeyMixin, Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # created_at only — no updated_at (immutable)
-    from datetime import datetime
-    from sqlalchemy import DateTime, func
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -1,0 +1,77 @@
+import uuid
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user, require_roles
+from app.core.database import get_db
+from app.domain.user import User, UserRole
+from app.schemas.supplier import (
+    SupplierCreate,
+    SupplierListResponse,
+    SupplierResponse,
+    SupplierUpdate,
+)
+from app.services.supplier_service import SupplierService
+
+router = APIRouter(prefix="/suppliers", tags=["suppliers"])
+
+
+@router.get("", response_model=SupplierListResponse)
+async def list_suppliers(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    is_active: Optional[bool] = Query(None),
+    search: Optional[str] = Query(None, max_length=255),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await SupplierService.list_suppliers(
+        db, current_user.tenant_id, page, per_page, is_active, search
+    )
+
+
+@router.post("", response_model=SupplierResponse, status_code=201)
+async def create_supplier(
+    data: SupplierCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
+    ),
+):
+    return await SupplierService.create_supplier(db, current_user.tenant_id, data)
+
+
+@router.get("/{supplier_id}", response_model=SupplierResponse)
+async def get_supplier(
+    supplier_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await SupplierService.get_supplier(db, supplier_id, current_user.tenant_id)
+
+
+@router.put("/{supplier_id}", response_model=SupplierResponse)
+async def update_supplier(
+    supplier_id: uuid.UUID,
+    data: SupplierUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
+    ),
+):
+    return await SupplierService.update_supplier(
+        db, supplier_id, current_user.tenant_id, data
+    )
+
+
+@router.delete("/{supplier_id}", status_code=204)
+async def delete_supplier(
+    supplier_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(UserRole.ORG_ADMIN)
+    ),
+):
+    await SupplierService.delete_supplier(db, supplier_id, current_user.tenant_id)
