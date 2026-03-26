@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   Menu, 
   X, 
@@ -18,8 +18,10 @@ import {
   CreditCard,
   Share2,
   Factory,
-  Settings
+  Settings,
+  LogOut
 } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -77,10 +79,18 @@ export default function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  function handleLogout() {
+    logout();
+    setIsOpen(false);
+    router.push("/login");
+  }
 
   if (!mounted) return null;
 
@@ -122,7 +132,7 @@ export default function MobileNav() {
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-6 overflow-y-auto custom-scrollbar">
           {navGroups.map((group, groupIdx) => (
             <div key={groupIdx} className="space-y-2">
               <h3 className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
@@ -157,6 +167,28 @@ export default function MobileNav() {
             </div>
           ))}
         </nav>
+
+        {/* Mobile User Profile & Logout */}
+        <div className="p-4 border-t border-gray-800 space-y-4 shrink-0">
+          {user && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/30">
+              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium text-gray-200 truncate">{user.full_name}</span>
+                <span className="text-[10px] text-gray-500 truncate">{user.email}</span>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
+          >
+            <LogOut size={20} />
+            Çıxış yap
+          </button>
+        </div>
       </aside>
 
       {/* Spacer for fixed header */}

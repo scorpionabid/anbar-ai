@@ -90,7 +90,6 @@ export default function Sidebar() {
 
   function handleLogout() {
     logout();
-    localStorage.removeItem("access_token");
     router.push("/login");
   }
 
