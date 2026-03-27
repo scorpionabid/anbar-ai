@@ -26,12 +26,14 @@ async def list_products(
     page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
     per_page: int = Query(20, ge=1, le=100, description="Səhifədəki element sayı"),
     category_id: Optional[uuid.UUID] = Query(None, description="Filtr: Kateqoriya ID-si"),
+    search: Optional[str] = Query(None, description="Ad, SKU və ya təsvir üzrə axtarış"),
+    is_active: Optional[bool] = Query(None, description="Aktivlik statusuna görə filtr"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Bütün məhsulların siyahısını pagination ilə qaytarır. Kateqoriya üzrə filtrasiya mümkündür."""
+    """Bütün məhsulların siyahısını pagination ilə qaytarır. Axtarış və filtrasiya mümkündür."""
     return await ProductService.list_products(
-        db, current_user.tenant_id, page, per_page, category_id
+        db, current_user.tenant_id, page, per_page, category_id, search, is_active
     )
 
 

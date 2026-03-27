@@ -48,10 +48,17 @@ export function useCreateProduct() {
   const qc = useQueryClient();
   return useMutation<Product, Error, ProductCreatePayload>({
     mutationFn: async (payload) => {
+      console.log("[useCreateProduct] Creating product with payload:", payload);
       const { data } = await apiClient.post<Product>("/products", payload);
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: (data) => {
+      console.log("[useCreateProduct] Successfully created product:", data);
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error) => {
+      console.error("[useCreateProduct] Error creating product:", error);
+    },
   });
 }
 
@@ -59,10 +66,17 @@ export function useUpdateProduct() {
   const qc = useQueryClient();
   return useMutation<Product, Error, { id: string; payload: ProductUpdatePayload }>({
     mutationFn: async ({ id, payload }) => {
+      console.log(`[useUpdateProduct] Updating product ${id} with payload:`, payload);
       const { data } = await apiClient.put<Product>(`/products/${id}`, payload);
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: (data) => {
+      console.log("[useUpdateProduct] Successfully updated product:", data);
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error) => {
+      console.error("[useUpdateProduct] Error updating product:", error);
+    },
   });
 }
 
@@ -70,9 +84,16 @@ export function useDeleteProduct() {
   const qc = useQueryClient();
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
+      console.log(`[useDeleteProduct] Deleting product ${id}`);
       await apiClient.delete(`/products/${id}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: (_, id) => {
+      console.log(`[useDeleteProduct] Successfully deleted product ${id}`);
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error) => {
+      console.error("[useDeleteProduct] Error deleting product:", error);
+    },
   });
 }
 
@@ -86,13 +107,20 @@ export function useCreateVariant() {
     { productId: string; payload: VariantCreatePayload }
   >({
     mutationFn: async ({ productId, payload }) => {
+      console.log(`[useCreateVariant] Creating variant for product ${productId}:`, payload);
       const { data } = await apiClient.post<ProductVariant>(
         `/products/${productId}/variants`,
         payload
       );
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: (data) => {
+      console.log("[useCreateVariant] Successfully created variant:", data);
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error) => {
+      console.error("[useCreateVariant] Error creating variant:", error);
+    },
   });
 }
 
@@ -104,13 +132,20 @@ export function useUpdateVariant() {
     { productId: string; variantId: string; payload: VariantUpdatePayload }
   >({
     mutationFn: async ({ productId, variantId, payload }) => {
+      console.log(`[useUpdateVariant] Updating variant ${variantId} of product ${productId}:`, payload);
       const { data } = await apiClient.put<ProductVariant>(
         `/products/${productId}/variants/${variantId}`,
         payload
       );
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: (data) => {
+      console.log("[useUpdateVariant] Successfully updated variant:", data);
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error) => {
+      console.error("[useUpdateVariant] Error updating variant:", error);
+    },
   });
 }
 
@@ -118,8 +153,15 @@ export function useDeleteVariant() {
   const qc = useQueryClient();
   return useMutation<void, Error, { productId: string; variantId: string }>({
     mutationFn: async ({ productId, variantId }) => {
+      console.log(`[useDeleteVariant] Deleting variant ${variantId} of product ${productId}`);
       await apiClient.delete(`/products/${productId}/variants/${variantId}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: (_, { variantId }) => {
+      console.log(`[useDeleteVariant] Successfully deleted variant ${variantId}`);
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error) => {
+      console.error("[useDeleteVariant] Error deleting variant:", error);
+    },
   });
 }

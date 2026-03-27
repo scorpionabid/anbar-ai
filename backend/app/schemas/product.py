@@ -45,13 +45,13 @@ class ProductVariantCreate(BaseModel):
     sku: str = Field(..., description="Variantın unikal SKU kodu", example="IPH-15-PRO-256-BLK")
     name: str = Field(..., description="Variantın adı", example="Black, 256GB")
     price: float = Field(0.0, description="Variantın satış qiyməti", example=1200.0)
-    attributes: Optional[str] = Field(None, description="Variantın atributları (JSON formatda)", example='{"color":"black","storage":"256GB"}')
+    attributes: Optional[dict] = Field(None, description="Variantın atributları (JSON formatda)", example={"color":"black","storage":"256GB"})
 
 
 class ProductVariantUpdate(BaseModel):
     name: Optional[str] = None
     price: Optional[float] = None
-    attributes: Optional[str] = None
+    attributes: Optional[dict] = None
 
 
 class ProductVariantResponse(BaseModel):
@@ -61,7 +61,7 @@ class ProductVariantResponse(BaseModel):
     sku: str
     name: str
     price: float
-    attributes: Optional[str]
+    attributes: Optional[dict]
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)

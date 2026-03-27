@@ -144,7 +144,8 @@ class ProductRepository:
         page: int = 1,
         per_page: int = 20,
         category_id: Optional[uuid.UUID] = None,
-        is_active: Optional[bool] = True,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None,
     ) -> tuple[list[Product], int]:
         query = (
             select(Product)
@@ -153,6 +154,12 @@ class ProductRepository:
         )
         if category_id is not None:
             query = query.where(Product.category_id == category_id)
+        if search:
+            query = query.where(
+                (Product.name.ilike(f"%{search}%"))
+                | (Product.sku.ilike(f"%{search}%"))
+                | (Product.description.ilike(f"%{search}%"))
+            )
         if is_active is not None:
             query = query.where(Product.is_active == is_active)
 
@@ -212,7 +219,8 @@ class ProductRepository:
         for field, value in data.model_dump(exclude_none=True).items():
             setattr(product, field, value)
         await db.flush()
-        await db.refresh(product, ["variants"])
+        await db.refresh(product)  # Refresh columns (created_at, updated_at, etc)
+        await db.refresh(product, ["variants"])  # Ensure variants are loaded
         return product
 
     @staticmethod

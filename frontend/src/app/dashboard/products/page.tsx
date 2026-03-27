@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp, Search, Filter, Download, CheckCircle2, XCircle, Box } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useProducts } from "@/hooks/useProducts";
@@ -99,26 +99,29 @@ function VariantTable({
   deleteVariantPending,
 }: VariantTableProps) {
   return (
-    <div className="bg-secondary/20 border-t border-border/30 px-8 py-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-foreground">Variantlar</p>
-        <Button size="sm" variant="outline" onClick={() => onAddVariant(product)}>
+    <div className="bg-secondary/10 border-t border-border/30 px-8 py-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Box className="h-4 w-4 text-primary" />
+          <p className="text-sm font-bold text-foreground">Məhsul Variantları</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => onAddVariant(product)} className="h-8">
           <Plus className="h-3.5 w-3.5 mr-1" />
           Variant əlavə et
         </Button>
       </div>
 
       {product.variants.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">Hələ variant yoxdur.</p>
+        <p className="text-xs text-muted-foreground py-2 italic">Hələ heç bir variant əlavə edilməyib.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border/40">
+        <div className="overflow-x-auto rounded-xl border border-border/40 bg-background/50 backdrop-blur-sm">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/40 bg-background/50">
+              <tr className="border-b border-border/40 bg-secondary/30">
                 {["SKU", "Ad", "Qiymət", "Status", "Əməliyyatlar"].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-2.5 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    className="px-4 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
                   >
                     {h}
                   </th>
@@ -129,28 +132,29 @@ function VariantTable({
               {product.variants.map((v) => (
                 <tr
                   key={v.id}
-                  className="border-b border-border/20 last:border-0 hover:bg-secondary/20"
+                  className="border-b border-border/20 last:border-0 hover:bg-secondary/40 transition-colors group/vrow"
                 >
-                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                     {v.sku}
                   </td>
-                  <td className="px-4 py-2.5 font-medium text-foreground">{v.name}</td>
-                  <td className="px-4 py-2.5 text-foreground">
+                  <td className="px-4 py-3 font-semibold text-foreground">{v.name}</td>
+                  <td className="px-4 py-3 text-foreground font-medium">
                     {v.price.toLocaleString("az-AZ", {
                       style: "currency",
                       currency: "AZN",
                     })}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-3">
                     <Badge variant="success">Aktiv</Badge>
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-3">
                     {deletingVariantId === v.id ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Əminsiniz?</span>
+                      <div className="flex items-center gap-2 scale-90 origin-left">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Silmək?</span>
                         <Button
                           size="sm"
                           variant="destructive"
+                          className="h-7 px-2"
                           onClick={() => onDeleteVariant(product.id, v.id)}
                           disabled={deleteVariantPending}
                         >
@@ -159,16 +163,18 @@ function VariantTable({
                         <Button
                           size="sm"
                           variant="outline"
+                          className="h-7 px-2"
                           onClick={() => setDeletingVariantId(null)}
                         >
                           Xeyr
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 opacity-0 group-hover/vrow:opacity-100 transition-opacity">
                         <Button
                           size="icon"
                           variant="ghost"
+                          className="h-8 w-8"
                           onClick={() => onEditVariant(product, v)}
                           aria-label="Düzəlt"
                         >
@@ -179,7 +185,7 @@ function VariantTable({
                           variant="ghost"
                           onClick={() => setDeletingVariantId(v.id)}
                           aria-label="Sil"
-                          className="text-destructive hover:text-destructive"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -200,8 +206,19 @@ function VariantTable({
 
 export default function ProductsPage() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError } = useProducts(page, 20);
-  const { data: categories } = useCategories();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const { data, isLoading, isError } = useProducts(
+    page,
+    20,
+    search || undefined,
+    categoryFilter === "all" ? undefined : categoryFilter,
+    statusFilter === "all" ? undefined : statusFilter === "active"
+  );
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData?.data ?? [];
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -244,6 +261,7 @@ export default function ProductsPage() {
 
   // Product modal handlers
   function openCreateProduct() {
+    console.log("[ProductsPage] Opening Create Product modal");
     setEditProduct(null);
     setProductForm(emptyProductForm);
     setProductFormError(null);
@@ -251,6 +269,7 @@ export default function ProductsPage() {
   }
 
   function openEditProduct(p: Product) {
+    console.log("[ProductsPage] Opening Edit Product modal for product:", p);
     setEditProduct(p);
     setProductForm({
       name: p.name,
@@ -265,6 +284,7 @@ export default function ProductsPage() {
   }
 
   function closeProductModal() {
+    console.log("[ProductsPage] Closing Product modal");
     setProductModalOpen(false);
     setEditProduct(null);
     setProductForm(emptyProductForm);
@@ -273,6 +293,7 @@ export default function ProductsPage() {
 
   async function handleProductSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[ProductsPage] Handling Product form submission. Data:", productForm);
     setProductFormError(null);
 
     if (!productForm.name.trim()) {
@@ -295,27 +316,30 @@ export default function ProductsPage() {
 
     try {
       if (editProduct) {
-        await updateProduct.mutateAsync({ id: editProduct.id, payload });
+        await updateProduct.mutateAsync({ id: editProduct.id, payload: productForm });
       } else {
-        await createProduct.mutateAsync(payload);
+        await createProduct.mutateAsync(productForm);
       }
       closeProductModal();
     } catch (err) {
+      console.error("[ProductsPage] Error in handleProductSubmit:", err);
       setProductFormError(err instanceof Error ? err.message : "Xəta baş verdi.");
     }
   }
 
   async function handleDeleteProduct(id: string) {
+    console.log(`[ProductsPage] Triggering delete for product ${id}`);
     try {
       await deleteProduct.mutateAsync(id);
       setDeletingProductId(null);
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("[ProductsPage] Error deleting product:", err);
     }
   }
 
   // Variant modal handlers
   function openAddVariant(product: Product) {
+    console.log("[ProductsPage] Opening Add Variant modal for product:", product.name);
     setVariantContext({ product, variant: null });
     setVariantForm(emptyVariantForm);
     setVariantFormError(null);
@@ -323,6 +347,7 @@ export default function ProductsPage() {
   }
 
   function openEditVariant(product: Product, variant: ProductVariant) {
+    console.log("[ProductsPage] Opening Edit Variant modal for variant:", variant);
     setVariantContext({ product, variant });
     setVariantForm({
       name: variant.name,
@@ -336,6 +361,7 @@ export default function ProductsPage() {
   }
 
   function closeVariantModal() {
+    console.log("[ProductsPage] Closing Variant modal");
     setVariantModalOpen(false);
     setVariantContext(null);
     setVariantForm(emptyVariantForm);
@@ -344,6 +370,7 @@ export default function ProductsPage() {
 
   async function handleVariantSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[ProductsPage] Handling Variant form submission. Data:", variantForm);
     if (!variantContext) return;
     setVariantFormError(null);
 
@@ -392,11 +419,13 @@ export default function ProductsPage() {
       }
       closeVariantModal();
     } catch (err) {
+      console.error("[ProductsPage] Error in handleVariantSubmit:", err);
       setVariantFormError(err instanceof Error ? err.message : "Xəta baş verdi.");
     }
   }
 
   async function handleDeleteVariant(productId: string, variantId: string) {
+    console.log(`[ProductsPage] Triggering delete for variant ${variantId} of product ${productId}`);
     try {
       await deleteVariant.mutateAsync({ productId, variantId });
       setDeletingVariantId(null);
@@ -415,48 +444,153 @@ export default function ProductsPage() {
     return min === max ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
   }
 
+  function exportToCSV() {
+    const products = data?.data ?? [];
+    if (!products.length) return;
+    const headers = ["ID", "SKU", "Ad", "Kateqoriya", "Variant Sayı", "Status"];
+    const rows = products.map((p) => [
+      p.id,
+      p.sku,
+      p.name,
+      categories.find((c) => c.id === p.category_id)?.name ?? "—",
+      p.variants.length,
+      p.is_active ? "Aktiv" : "Deaktiv",
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8,\uFEFF" +
+      [headers, ...rows].map((e) => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `mehsullar_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   const isProductPending = createProduct.isPending || updateProduct.isPending;
   const isVariantPending = createVariant.isPending || updateVariant.isPending;
   const totalPages = data ? Math.ceil(data.total / 20) : 1;
+  const products = data?.data ?? [];
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            Məhsullar
-          </h1>
-          <p className="text-muted-foreground font-medium mt-1">
-            {isLoading ? "Yüklənir..." : `${data?.total ?? 0} məhsul mövcuddur`}
-          </p>
-        </div>
-        <Button onClick={openCreateProduct} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Yeni Məhsul
-        </Button>
+    <div className="p-8 space-y-8 max-w-[1600px] mx-auto">
+      {/* ── Statistics ──────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card glass className="border-l-4 border-l-blue-500">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Ümumi Məhsul</p>
+                <h3 className="text-2xl font-bold mt-1">{data?.total ?? 0}</h3>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                <Package size={24} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card glass className="border-l-4 border-l-green-500">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Aktiv</p>
+                <h3 className="text-2xl font-bold mt-1">
+                  {products.filter(p => p.is_active).length}
+                </h3>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
+                <CheckCircle2 size={24} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card glass className="border-l-4 border-l-amber-500">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Deaktiv</p>
+                <h3 className="text-2xl font-bold mt-1">
+                  {products.filter(p => !p.is_active).length}
+                </h3>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <XCircle size={24} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Table */}
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-foreground">Məhsullar</h1>
+          <p className="text-muted-foreground font-medium mt-1">Anbarınızdakı məhsulları idarə edin</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="gap-2" onClick={exportToCSV} disabled={!products.length}>
+            <Download className="h-4 w-4" />
+            Eksport
+          </Button>
+          <Button onClick={openCreateProduct} className="gap-2 shadow-lg shadow-primary/20">
+            <Plus className="h-4 w-4" />
+            Yeni Məhsul
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Filters ─────────────────────────────────────────────────────────── */}
+      <Card glass className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-[2] group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input
+              placeholder="Ad, SKU və ya təsvir ilə axtarış..."
+              className="pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex-1 relative group">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
+            <Select
+              className="pl-10"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="all">Bütün Kateqoriyalar</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex-1 relative group">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
+            <Select
+              className="pl-10"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">Bütün Statuslar</option>
+              <option value="active">Aktiv</option>
+              <option value="inactive">Deaktiv</option>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Table ───────────────────────────────────────────────────────────── */}
       <Card glass>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border/50">
-                  {[
-                    "SKU",
-                    "Ad",
-                    "Kateqoriya",
-                    "Variantlar",
-                    "Qiymət aralığı",
-                    "Status",
-                    "Əməliyyatlar",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
-                    >
+                <tr className="border-b border-border/50 bg-secondary/20">
+                  {["SKU", "Ad", "Kateqoriya", "Variantlar", "Qiymət Aralığı", "Status", "Əməliyyatlar"].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -472,64 +606,33 @@ export default function ProductsPage() {
                 )}
                 {isError && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-12 text-center text-sm text-destructive"
-                    >
-                      Məhsullar yüklənərkən xəta baş verdi.
-                    </td>
+                    <td colSpan={7} className="px-6 py-12 text-center text-destructive">Məhsullar yüklənərkən xəta baş verdi.</td>
                   </tr>
                 )}
-                {!isLoading && !isError && data?.data.length === 0 && (
+                {!isLoading && !isError && products.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-12 text-center text-sm text-muted-foreground"
-                    >
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                       <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      Hələ heç bir məhsul əlavə edilməyib.
+                      Məhsul tapılmadı.
                     </td>
                   </tr>
                 )}
-                {(data?.data ?? []).map((p) => {
+                {products.map((p) => {
                   const isExpanded = expandedRows.has(p.id);
-                  const catName =
-                    categories?.data?.find((c) => c.id === p.category_id)?.name ?? "—";
-
+                  const catName = categories.find((c) => c.id === p.category_id)?.name ?? "—";
                   return (
-                    <>
-                      <tr
-                        key={p.id}
-                        className={cn(
-                          "border-b border-border/30 hover:bg-secondary/30 transition-colors",
-                          isExpanded && "bg-secondary/20"
-                        )}
-                      >
-                        <td className="px-6 py-4 text-sm font-mono text-muted-foreground">
-                          {p.sku}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-foreground">
-                          {p.name}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {catName}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-foreground">
-                          <button
-                            onClick={() => toggleRow(p.id)}
-                            className="flex items-center gap-1.5 text-primary hover:underline font-medium"
-                          >
+                    <React.Fragment key={p.id}>
+                      <tr className={cn("border-b border-border/30 hover:bg-secondary/30 transition-colors last:border-0 group/row", isExpanded && "bg-secondary/20")}>
+                        <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{p.sku}</td>
+                        <td className="px-6 py-4 font-bold text-foreground">{p.name}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{catName}</td>
+                        <td className="px-6 py-4">
+                          <button onClick={() => toggleRow(p.id)} className="flex items-center gap-1.5 text-primary hover:underline font-bold transition-all hover:gap-2">
                             {p.variants.length} variant
-                            {isExpanded ? (
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            )}
+                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                           </button>
                         </td>
-                        <td className="px-6 py-4 text-sm text-foreground">
-                          {getPriceRange(p.variants)}
-                        </td>
+                        <td className="px-6 py-4 font-medium text-foreground">{getPriceRange(p.variants)}</td>
                         <td className="px-6 py-4">
                           <Badge variant={p.is_active ? "success" : "secondary"}>
                             {p.is_active ? "Aktiv" : "Deaktiv"}
@@ -537,54 +640,21 @@ export default function ProductsPage() {
                         </td>
                         <td className="px-6 py-4">
                           {deletingProductId === p.id ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                Əminsiniz?
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteProduct(p.id)}
-                                disabled={deleteProduct.isPending}
-                              >
-                                Bəli
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setDeletingProductId(null)}
-                              >
-                                Xeyr
-                              </Button>
+                            <div className="flex items-center gap-2 scale-90 origin-left">
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground">Silmək?</span>
+                              <Button size="sm" variant="destructive" className="h-8" onClick={() => handleDeleteProduct(p.id)} disabled={deleteProduct.isPending}>Bəli</Button>
+                              <Button size="sm" variant="outline" className="h-8" onClick={() => setDeletingProductId(null)}>Xeyr</Button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => openEditProduct(p)}
-                                aria-label="Düzəlt"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => setDeletingProductId(p.id)}
-                                aria-label="Sil"
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                              <Button size="icon" variant="ghost" onClick={() => openEditProduct(p)} aria-label="Düzəlt"><Pencil className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" onClick={() => setDeletingProductId(p.id)} aria-label="Sil" className="text-destructive hover:text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></Button>
                             </div>
                           )}
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr
-                          key={`${p.id}-expanded`}
-                          className="border-b border-border/30"
-                        >
+                        <tr className="bg-secondary/5 border-b border-border/20 shadow-inner">
                           <td colSpan={7} className="p-0">
                             <VariantTable
                               product={p}
@@ -598,36 +668,19 @@ export default function ProductsPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
-              <p className="text-sm text-muted-foreground">
-                Səhifə {page} / {totalPages}
-              </p>
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-secondary/10 backdrop-blur-sm rounded-b-xl">
+              <p className="text-sm font-medium text-muted-foreground">Səhifə <span className="text-foreground font-bold">{page}</span> / <span className="text-foreground">{totalPages}</span></p>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                  disabled={page === 1}
-                >
-                  Əvvəlki
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={page === totalPages}
-                >
-                  Növbəti
-                </Button>
+                <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="h-8">Əvvəlki</Button>
+                <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="h-8">Növbəti</Button>
               </div>
             </div>
           )}
@@ -639,120 +692,50 @@ export default function ProductsPage() {
         open={productModalOpen}
         onClose={closeProductModal}
         title={editProduct ? "Məhsulu Düzəlt" : "Yeni Məhsul"}
-        description={
-          editProduct
-            ? "Məhsul məlumatlarını yeniləyin."
-            : "Yeni məhsul yaratmaq üçün məlumatları doldurun."
-        }
+        description={editProduct ? "Məhsul məlumatlarını yeniləyin." : "Yeni məhsul yaratmaq üçün məlumatları doldurun."}
         size="lg"
       >
-        <form onSubmit={handleProductSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Ad <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="Məhsulun adı"
-                value={productForm.name}
-                onChange={(e) =>
-                  setProductForm((f) => ({ ...f, name: e.target.value }))
-                }
-                required
-              />
+        <form onSubmit={handleProductSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">Ad <span className="text-destructive">*</span></label>
+              <Input placeholder="Məhsulun adı" value={productForm.name} onChange={(e) => setProductForm(f => ({ ...f, name: e.target.value }))} required />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                SKU <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="PROD-001"
-                value={productForm.sku}
-                onChange={(e) =>
-                  setProductForm((f) => ({ ...f, sku: e.target.value }))
-                }
-                required
-              />
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">SKU <span className="text-destructive">*</span></label>
+              <Input placeholder="PROD-001" value={productForm.sku} onChange={(e) => setProductForm(f => ({ ...f, sku: e.target.value }))} required />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Təsvir
-            </label>
-            <Textarea
-              placeholder="Məhsul haqqında ətraflı məlumat..."
-              value={productForm.description}
-              onChange={(e) =>
-                setProductForm((f) => ({ ...f, description: e.target.value }))
-              }
-            />
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-foreground">Təsvir</label>
+            <Textarea placeholder="Məhsul haqqında ətraflı məlumat..." className="min-h-[100px]" value={productForm.description} onChange={(e) => setProductForm(f => ({ ...f, description: e.target.value }))} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Kateqoriya
-              </label>
-              <Select
-                value={productForm.category_id}
-                onChange={(e) =>
-                  setProductForm((f) => ({ ...f, category_id: e.target.value }))
-                }
-              >
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">Kateqoriya</label>
+              <Select value={productForm.category_id} onChange={(e) => setProductForm(f => ({ ...f, category_id: e.target.value }))}>
                 <option value="">Kateqoriya seçin</option>
-                {(categories?.data ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Ölçü vahidi
-              </label>
-              <Input
-                placeholder="ədəd"
-                value={productForm.unit_of_measure}
-                onChange={(e) =>
-                  setProductForm((f) => ({ ...f, unit_of_measure: e.target.value }))
-                }
-              />
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">Ölçü vahidi</label>
+              <Input placeholder="ədəd" value={productForm.unit_of_measure} onChange={(e) => setProductForm(f => ({ ...f, unit_of_measure: e.target.value }))} />
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="prod-is-active"
-              checked={productForm.is_active}
-              onChange={(e) =>
-                setProductForm((f) => ({ ...f, is_active: e.target.checked }))
-              }
-              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-            />
-            <label
-              htmlFor="prod-is-active"
-              className="text-sm font-medium text-foreground cursor-pointer"
-            >
-              Aktiv
-            </label>
+          <div className="flex items-center gap-3 border border-border/50 p-4 rounded-xl bg-secondary/5">
+            <input type="checkbox" id="prod-is-active" checked={productForm.is_active} onChange={(e) => setProductForm(f => ({ ...f, is_active: e.target.checked }))} className="h-5 w-5 rounded border-input accent-primary cursor-pointer" />
+            <label htmlFor="prod-is-active" className="text-sm font-bold text-foreground cursor-pointer">Aktiv Məhsul</label>
           </div>
 
-          {productFormError && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              {productFormError}
-            </p>
-          )}
+          {productFormError && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-2 border border-destructive/20 font-medium">{productFormError}</p>}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={closeProductModal}>
-              Ləğv et
-            </Button>
-            <Button type="submit" disabled={isProductPending}>
-              {isProductPending ? "Saxlanılır..." : editProduct ? "Yenilə" : "Yarat"}
-            </Button>
+          <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+            <Button type="button" variant="outline" onClick={closeProductModal} className="px-6">Ləğv et</Button>
+            <Button type="submit" disabled={isProductPending} className="px-8 shadow-lg shadow-primary/20">{isProductPending ? "Saxlanılır..." : editProduct ? "Yenilə" : "Yarat"}</Button>
           </div>
         </form>
       </Modal>
@@ -761,112 +744,42 @@ export default function ProductsPage() {
       <Modal
         open={variantModalOpen}
         onClose={closeVariantModal}
-        title={
-          variantContext?.variant
-            ? "Variantı Düzəlt"
-            : `Variant əlavə et — ${variantContext?.product.name ?? ""}`
-        }
+        title={variantContext?.variant ? "Variantı Düzəlt" : `Variant əlavə et — ${variantContext?.product.name ?? ""}`}
         size="md"
       >
-        <form onSubmit={handleVariantSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Ad <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="Variant adı"
-                value={variantForm.name}
-                onChange={(e) =>
-                  setVariantForm((f) => ({ ...f, name: e.target.value }))
-                }
-                required
-              />
+        <form onSubmit={handleVariantSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">Ad <span className="text-destructive">*</span></label>
+              <Input placeholder="Variant adı" value={variantForm.name} onChange={(e) => setVariantForm(f => ({ ...f, name: e.target.value }))} required />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                SKU <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="VAR-001"
-                value={variantForm.sku}
-                onChange={(e) =>
-                  setVariantForm((f) => ({ ...f, sku: e.target.value }))
-                }
-                required
-              />
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">SKU <span className="text-destructive">*</span></label>
+              <Input placeholder="VAR-001" value={variantForm.sku} onChange={(e) => setVariantForm(f => ({ ...f, sku: e.target.value }))} required />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Qiymət (AZN) <span className="text-destructive">*</span>
-              </label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={variantForm.price}
-                onChange={(e) =>
-                  setVariantForm((f) => ({ ...f, price: e.target.value }))
-                }
-                required
-              />
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">Qiymət (AZN) <span className="text-destructive">*</span></label>
+              <Input type="number" min="0" step="0.01" placeholder="0.00" value={variantForm.price} onChange={(e) => setVariantForm(f => ({ ...f, price: e.target.value }))} required />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Maya dəyəri (AZN)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={variantForm.cost_price}
-                onChange={(e) =>
-                  setVariantForm((f) => ({ ...f, cost_price: e.target.value }))
-                }
-              />
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">Maya dəyəri (AZN)</label>
+              <Input type="number" min="0" step="0.01" placeholder="0.00" value={variantForm.cost_price} onChange={(e) => setVariantForm(f => ({ ...f, cost_price: e.target.value }))} />
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="var-is-active"
-              checked={variantForm.is_active}
-              onChange={(e) =>
-                setVariantForm((f) => ({ ...f, is_active: e.target.checked }))
-              }
-              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-            />
-            <label
-              htmlFor="var-is-active"
-              className="text-sm font-medium text-foreground cursor-pointer"
-            >
-              Aktiv
-            </label>
+          <div className="flex items-center gap-3 border border-border/50 p-4 rounded-xl bg-secondary/5">
+            <input type="checkbox" id="var-is-active" checked={variantForm.is_active} onChange={(e) => setVariantForm(f => ({ ...f, is_active: e.target.checked }))} className="h-5 w-5 rounded border-input accent-primary cursor-pointer" />
+            <label htmlFor="var-is-active" className="text-sm font-bold text-foreground cursor-pointer">Aktiv Variant</label>
           </div>
 
-          {variantFormError && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              {variantFormError}
-            </p>
-          )}
+          {variantFormError && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-2 border border-destructive/20 font-medium">{variantFormError}</p>}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={closeVariantModal}>
-              Ləğv et
-            </Button>
-            <Button type="submit" disabled={isVariantPending}>
-              {isVariantPending
-                ? "Saxlanılır..."
-                : variantContext?.variant
-                ? "Yenilə"
-                : "Əlavə et"}
-            </Button>
+          <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+            <Button type="button" variant="outline" onClick={closeVariantModal} className="px-6">Ləğv et</Button>
+            <Button type="submit" disabled={isVariantPending} className="px-8 shadow-lg shadow-primary/20">{isVariantPending ? "Saxlanılır..." : variantContext?.variant ? "Yenilə" : "Əlavə et"}</Button>
           </div>
         </form>
       </Modal>

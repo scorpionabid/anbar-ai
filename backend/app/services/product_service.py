@@ -111,9 +111,11 @@ class ProductService:
         page: int = 1,
         per_page: int = 20,
         category_id: Optional[uuid.UUID] = None,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None,
     ) -> ProductListResponse:
         products, total = await ProductRepository.list(
-            db, tenant_id, page, per_page, category_id
+            db, tenant_id, page, per_page, category_id, search, is_active
         )
         return ProductListResponse(
             data=[ProductResponse.model_validate(p) for p in products],
