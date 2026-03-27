@@ -94,43 +94,50 @@ export default function Sidebar() {
   }
 
   if (!mounted) {
-    return <aside className="w-64 bg-gray-900 border-r border-gray-800" />;
+    return <aside className="w-64 bg-background border-r" />;
   }
 
   return (
     <aside 
       className={cn(
-        "bg-gray-900 text-white flex flex-col shrink-0 transition-all duration-300 ease-in-out border-r border-gray-800 h-full overflow-hidden",
+        "bg-background text-foreground flex flex-col shrink-0 transition-all duration-500 ease-in-out border-r h-full overflow-hidden relative z-40",
         isSidebarCollapsed ? "w-20" : "w-64"
       )}
     >
+      {/* Background Accent */}
+      <div className="absolute top-0 left-0 w-full h-full bg-primary/5 pointer-events-none" />
+
       {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-800 shrink-0">
+      <div className="h-16 flex items-center justify-between px-5 border-b shrink-0 relative z-10">
         {!isSidebarCollapsed && (
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-lg font-bold tracking-tight text-blue-500 truncate">ANBAR</span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold truncate">Inventory Core</span>
+          <div className="flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-4 duration-500">
+            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
+              ANBAR
+            </span>
+            <span className="text-[9px] text-muted-foreground uppercase tracking-[0.2em] font-bold">
+              Inventory Core
+            </span>
           </div>
         )}
         {isSidebarCollapsed && (
-          <div className="w-full flex justify-center">
-            <span className="text-xl font-bold text-blue-500">A</span>
+          <div className="w-full flex justify-center animate-in fade-in zoom-in duration-300">
+            <span className="text-2xl font-black text-primary">A</span>
           </div>
         )}
         <button 
           onClick={toggleSidebar}
-          className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+          className="p-1.5 rounded-xl bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all duration-200 border border-transparent hover:border-border"
         >
-          {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-6 space-y-8 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 px-3 py-6 space-y-8 overflow-y-auto custom-scrollbar relative z-10">
         {navGroups.map((group, groupIdx) => (
-          <div key={groupIdx} className="space-y-2">
+          <div key={groupIdx} className="space-y-3">
             {!isSidebarCollapsed && (
-              <h3 className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+              <h3 className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] opacity-80">
                 {group.title}
               </h3>
             )}
@@ -148,44 +155,44 @@ export default function Sidebar() {
                     href={item.href}
                     title={isSidebarCollapsed ? item.label : ""}
                     className={cn(
-                      "group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative",
+                      "group flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden",
                       isActive
-                        ? "bg-blue-600/10 text-blue-500"
-                        : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )}
                   >
-                    <Icon size={18} className={cn("shrink-0", isActive && "text-blue-500")} />
+                    <Icon size={18} className={cn("shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "text-primary-foreground")} />
                     {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
                     
-                    {/* Active Indicator */}
-                    {isActive && (
-                      <div className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full" />
+                    {/* Hover Glow */}
+                    {!isActive && (
+                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                     )}
                   </Link>
                 );
               })}
             </div>
             {groupIdx < navGroups.length - 1 && isSidebarCollapsed && (
-              <div className="mx-4 border-t border-gray-800/50 my-4" />
+              <div className="mx-4 border-t border-border/50 my-4" />
             )}
           </div>
         ))}
       </nav>
 
       {/* Footer / User Profile */}
-      <div className="p-3 border-t border-gray-800 space-y-2 shrink-0">
+      <div className="p-4 border-t space-y-3 shrink-0 relative z-10">
         {user && (
           <div className={cn(
-            "flex items-center gap-3 p-2 rounded-xl bg-gray-800/30",
-            isSidebarCollapsed ? "justify-center" : "px-3"
+            "flex items-center gap-3 p-2.5 rounded-2xl animate-in fade-in slide-in-from-bottom-4 duration-700",
+            isSidebarCollapsed ? "justify-center" : "bg-secondary/30 border border-border/5 pr-4"
           )}>
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shrink-0 shadow-inner">
+              <span className="text-sm font-bold text-white shadow-sm">{user.email[0].toUpperCase()}</span>
             </div>
             {!isSidebarCollapsed && (
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-medium text-gray-200 truncate">{user.full_name || "User"}</span>
-                <span className="text-[10px] text-gray-500 truncate">{user.email}</span>
+                <span className="text-xs font-bold text-foreground truncate">{user.full_name || "User"}</span>
+                <span className="text-[10px] text-muted-foreground truncate font-medium">{user.email}</span>
               </div>
             )}
           </div>
@@ -194,12 +201,12 @@ export default function Sidebar() {
         <button
           onClick={handleLogout}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all",
+            "w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-2xl transition-all duration-300",
             isSidebarCollapsed && "justify-center"
           )}
           title={isSidebarCollapsed ? "Sign out" : ""}
         >
-          <LogOut size={18} className="shrink-0" />
+          <LogOut size={16} className="shrink-0" />
           {!isSidebarCollapsed && <span>Sign out</span>}
         </button>
       </div>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore, type AuthState } from "@/stores/authStore";
+import { useAuthStore } from "@/stores/authStore";
 import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import Navbar from "@/components/Navbar";
 
 export default function DashboardLayout({
   children,
@@ -12,35 +12,32 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const accessToken = useAuthStore((s: AuthState) => s.accessToken);
-  const hasHydrated = useAuthStore((s: AuthState) => s._hasHydrated);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const _hasHydrated = useAuthStore((s) => s._hasHydrated);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (hasHydrated && !accessToken) {
-      router.replace("/login");
-    }
-  }, [accessToken, router, hasHydrated]);
+    setIsClient(true);
+  }, []);
 
-  if (!hasHydrated) return null;
+  useEffect(() => {
+    if (_hasHydrated && !accessToken) {
+      router.push("/login");
+    }
+  }, [_hasHydrated, accessToken, router]);
+
+  if (!isClient || !_hasHydrated) return null;
   if (!accessToken) return null;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex h-full">
-        <Sidebar />
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Navbar />
+        <main className="flex-1 overflow-y-auto custom-scrollbar bg-secondary/20 p-6 md:p-8 animate-in fade-in duration-700">
+          {children}
+        </main>
       </div>
-
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {/* Mobile Navigation */}
-        <MobileNav />
-        
-        <div className="flex-1 overflow-y-auto px-4 py-8 md:px-8">
-          <div className="max-w-7xl mx-auto w-full">
-            {children}
-          </div>
-        </div>
-      </main>
     </div>
   );
 }

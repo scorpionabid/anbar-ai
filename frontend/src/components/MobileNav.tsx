@@ -80,7 +80,8 @@ export default function MobileNav() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const logout = useAuthStore((s: any) => s.logout);
+  const user = useAuthStore((s: any) => s.user);
 
   useEffect(() => {
     setMounted(true);
@@ -95,22 +96,11 @@ export default function MobileNav() {
   if (!mounted) return null;
 
   return (
-    <div className="md:hidden">
-      {/* Mobile Header */}
-      <div className="h-16 flex items-center justify-between px-4 bg-gray-900 border-b border-gray-800 fixed top-0 left-0 right-0 z-40">
-        <span className="text-lg font-bold text-blue-500">ANBAR</span>
-        <button
-          onClick={() => setIsOpen(true)}
-          className="p-2 rounded-lg text-gray-400 hover:text-white"
-        >
-          <Menu size={24} />
-        </button>
-      </div>
-
-      {/* Drawer Overlay */}
+    <div className="lg:hidden">
+      {/* Mobile Drawer Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 animate-in fade-in duration-300"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -118,24 +108,27 @@ export default function MobileNav() {
       {/* Drawer Content */}
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 w-80 bg-gray-900 z-50 transform transition-transform duration-300 ease-in-out flex flex-col",
+          "fixed top-0 bottom-0 left-0 w-[280px] bg-background border-r z-50 transform transition-all duration-500 ease-in-out flex flex-col shadow-2xl",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-gray-800 shrink-0">
-          <span className="text-xl font-bold text-blue-500">ANBAR</span>
+        <div className="h-16 flex items-center justify-between px-6 border-b shrink-0 bg-primary/5">
+          <div className="flex flex-col">
+            <span className="text-xl font-black bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">ANBAR</span>
+            <span className="text-[8px] text-muted-foreground uppercase tracking-widest font-black">Mobile Core</span>
+          </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 rounded-lg text-gray-400 hover:text-white"
+            className="p-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-all"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-6 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-4 space-y-8 overflow-y-auto custom-scrollbar">
           {navGroups.map((group, groupIdx) => (
-            <div key={groupIdx} className="space-y-2">
-              <h3 className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+            <div key={groupIdx} className="space-y-3">
+              <h3 className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-70">
                 {group.title}
               </h3>
               <div className="space-y-1">
@@ -152,13 +145,13 @@ export default function MobileNav() {
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={cn(
-                        "flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
+                        "flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300",
                         isActive
-                          ? "bg-blue-600 text-white"
-                          : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                       )}
                     >
-                      <Icon size={20} />
+                      <Icon size={18} className={cn(isActive && "text-primary-foreground")} />
                       {item.label}
                     </Link>
                   );
@@ -168,31 +161,28 @@ export default function MobileNav() {
           ))}
         </nav>
 
-        {/* Mobile User Profile & Logout */}
-        <div className="p-4 border-t border-gray-800 space-y-4 shrink-0">
+        {/* User Profile & Logout */}
+        <div className="p-4 border-t space-y-3 shrink-0 bg-secondary/10">
           {user && (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/30">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
-                <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-background border border-border/5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-white">{user.email[0].toUpperCase()}</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-medium text-gray-200 truncate">{user.full_name}</span>
-                <span className="text-[10px] text-gray-500 truncate">{user.email}</span>
+                <span className="text-xs font-bold text-foreground truncate">{user.full_name}</span>
+                <span className="text-[10px] text-muted-foreground truncate font-medium">{user.email}</span>
               </div>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-all"
+            className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-sm font-bold text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-300"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
             Çıxış yap
           </button>
         </div>
       </aside>
-
-      {/* Spacer for fixed header */}
-      <div className="h-16" />
     </div>
   );
 }
