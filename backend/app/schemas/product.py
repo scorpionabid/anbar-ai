@@ -2,14 +2,14 @@ import uuid
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ── Category ─────────────────────────────────────────────────────────────────
 
 class CategoryCreate(BaseModel):
-    name: str
-    parent_id: Optional[uuid.UUID] = None
+    name: str = Field(..., description="Kateqoriyanın adı", example="Elektronika")
+    parent_id: Optional[uuid.UUID] = Field(None, description="Valideyn kateqoriya ID-si (Tree structure üçün)")
 
 
 class CategoryResponse(BaseModel):
@@ -24,10 +24,10 @@ class CategoryResponse(BaseModel):
 # ── ProductVariant ────────────────────────────────────────────────────────────
 
 class ProductVariantCreate(BaseModel):
-    sku: str
-    name: str
-    price: float = 0
-    attributes: Optional[str] = None  # JSON string: {"color":"red","size":"L"}
+    sku: str = Field(..., description="Variantın unikal SKU kodu", example="IPH-15-PRO-256-BLK")
+    name: str = Field(..., description="Variantın adı", example="Black, 256GB")
+    price: float = Field(0.0, description="Variantın satış qiyməti", example=1200.0)
+    attributes: Optional[str] = Field(None, description="Variantın atributları (JSON formatda)", example='{"color":"black","storage":"256GB"}')
 
 
 class ProductVariantUpdate(BaseModel):
@@ -52,11 +52,11 @@ class ProductVariantResponse(BaseModel):
 # ── Product ───────────────────────────────────────────────────────────────────
 
 class ProductCreate(BaseModel):
-    name: str
-    sku: str
-    description: Optional[str] = None
-    category_id: Optional[uuid.UUID] = None
-    variants: List[ProductVariantCreate] = []
+    name: str = Field(..., description="Məhsulun əsas adı", example="iPhone 15 Pro")
+    sku: str = Field(..., description="Məhsulun əsas SKU kodu", example="IPH-15-PRO")
+    description: Optional[str] = Field(None, description="Məhsul haqqında ətraflı məlumat")
+    category_id: Optional[uuid.UUID] = Field(None, description="Kateqoriya identifikatoru")
+    variants: List[ProductVariantCreate] = Field([], description="Məhsulun variantları")
 
 
 class ProductUpdate(BaseModel):
@@ -68,16 +68,16 @@ class ProductUpdate(BaseModel):
 
 
 class ProductResponse(BaseModel):
-    id: uuid.UUID
+    id: uuid.UUID = Field(..., description="Məhsulun unikal identifikatoru")
     tenant_id: uuid.UUID
     name: str
     sku: str
     description: Optional[str]
     category_id: Optional[uuid.UUID]
-    is_active: bool
+    is_active: bool = Field(..., description="Məhsulun aktivlik statusu")
     created_at: datetime
     updated_at: datetime
-    variants: List[ProductVariantResponse] = []
+    variants: List[ProductVariantResponse] = Field([], description="Məhsulun bütün variantları")
     model_config = ConfigDict(from_attributes=True)
 
 

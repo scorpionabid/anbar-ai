@@ -18,15 +18,16 @@ from app.services.customer_service import CustomerService
 router = APIRouter(prefix="/customers", tags=["customers"])
 
 
-@router.get("", response_model=CustomerListResponse)
+@router.get("", response_model=CustomerListResponse, summary="Müştəri siyahısı")
 async def list_customers(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    is_active: Optional[bool] = Query(None),
-    search: Optional[str] = Query(None, max_length=255),
+    page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
+    per_page: int = Query(20, ge=1, le=100, description="Səhifədəki element sayı"),
+    is_active: Optional[bool] = Query(None, description="Filtr: Aktivlik statusu"),
+    search: Optional[str] = Query(None, max_length=255, description="Axtarış (Ad, Email)"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Bütün müştərilərin siyahısını pagination və axtarış ilə qaytarır."""
     return await CustomerService.list_customers(
         db, current_user.tenant_id, page, per_page, is_active, search
     )

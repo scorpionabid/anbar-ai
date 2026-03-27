@@ -18,15 +18,16 @@ from app.services.supplier_service import SupplierService
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
 
 
-@router.get("", response_model=SupplierListResponse)
+@router.get("", response_model=SupplierListResponse, summary="Tədarükçü siyahısı")
 async def list_suppliers(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    is_active: Optional[bool] = Query(None),
-    search: Optional[str] = Query(None, max_length=255),
+    page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
+    per_page: int = Query(20, ge=1, le=100, description="Səhifədəki element sayı"),
+    is_active: Optional[bool] = Query(None, description="Filtr: Aktivlik statusu"),
+    search: Optional[str] = Query(None, max_length=255, description="Axtarış (Ad, Email)"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Bütün tədarükçülərin siyahısını pagination və axtarış ilə qaytarır."""
     return await SupplierService.list_suppliers(
         db, current_user.tenant_id, page, per_page, is_active, search
     )

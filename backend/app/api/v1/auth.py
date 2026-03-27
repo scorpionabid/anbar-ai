@@ -19,11 +19,15 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, summary="İstifadəçi girişi (JWT Token)")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Email və şifrə vasitəsilə autentifikasiya.
+    Uğurlu giriş zamanı `access_token` və `refresh_token` qaytarır.
+    """
     repo = UserRepository(db)
     user = await repo.get_by_email(form_data.username)
 
@@ -44,6 +48,7 @@ async def login(
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-@router.get("/me", response_model=UserRead)
+@router.get("/me", response_model=UserRead, summary="Cari istifadəçi məlumatları")
 async def get_me(current_user: User = Depends(get_current_user)):
+    """JWT token vasitəsilə autentifikasiya olunmuş cari istifadəçinin profil məlumatlarını qaytarır."""
     return current_user

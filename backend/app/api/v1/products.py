@@ -21,25 +21,30 @@ from app.services.product_service import ProductService
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("", response_model=ProductListResponse)
+@router.get("", response_model=ProductListResponse, summary="Məhsulların siyahısı")
 async def list_products(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    category_id: Optional[uuid.UUID] = Query(None),
+    page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
+    per_page: int = Query(20, ge=1, le=100, description="Səhifədəki element sayı"),
+    category_id: Optional[uuid.UUID] = Query(None, description="Filtr: Kateqoriya ID-si"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Bütün məhsulların siyahısını pagination ilə qaytarır. Kateqoriya üzrə filtrasiya mümkündür."""
     return await ProductService.list_products(
         db, current_user.tenant_id, page, per_page, category_id
     )
 
 
-@router.post("", response_model=ProductResponse, status_code=201)
+@router.post("", response_model=ProductResponse, status_code=201, summary="Yeni məhsul yarat")
 async def create_product(
     data: ProductCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Yeni məhsul və onun ilkin variantlarını yaradır.
+    Məhsul adı və SKU unikal olmalıdır.
+    """
     return await ProductService.create_product(db, current_user.tenant_id, data)
 
 

@@ -19,16 +19,17 @@ from app.services.order_service import OrderService
 router = APIRouter(prefix="/orders", tags=["orders"])
 
 
-@router.get("", response_model=OrderListResponse)
+@router.get("", response_model=OrderListResponse, summary="Sifarişlərin siyahısı")
 async def list_orders(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    status: Optional[OrderStatus] = Query(None),
-    customer_id: Optional[uuid.UUID] = Query(None),
-    channel_id: Optional[uuid.UUID] = Query(None),
+    page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
+    per_page: int = Query(20, ge=1, le=100, description="Səhifədəki element sayı"),
+    status: Optional[OrderStatus] = Query(None, description="Filtr: Sifariş statusu"),
+    customer_id: Optional[uuid.UUID] = Query(None, description="Filtr: Müştəri ID-si"),
+    channel_id: Optional[uuid.UUID] = Query(None, description="Filtr: Satış kanalı ID-si"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Bütün sifarişlərin siyahısını pagination ilə qaytarır. Status, müştəri və kanal üzrə filtrasiya mümkündür."""
     return await OrderService.list_orders(
         db,
         tenant_id=current_user.tenant_id,
@@ -40,12 +41,16 @@ async def list_orders(
     )
 
 
-@router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED, summary="Yeni sifariş yarat")
 async def create_order(
     data: OrderCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Yeni sifariş və ona aid sətirləri (items) yaradır.
+    Sifariş ilkin olaraq `DRAFT` statusunda yaradılır və stok rezervasiyası baş vermir.
+    """
     return await OrderService.create_order(
         db,
         tenant_id=current_user.tenant_id,
@@ -73,12 +78,16 @@ async def update_order(
     return await OrderService.update_order(db, order_id, current_user.tenant_id, data)
 
 
-@router.post("/{order_id}/confirm", response_model=OrderResponse)
+@router.post("/{order_id}/confirm", response_model=OrderResponse, summary="Sifarişi təsdiqlə")
 async def confirm_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Sifarişi təsdiqləyir (`CONFIRMED`). Bu mərhələdə stok rezervasiyası (Reserve) baş verir.
+    Stok kifayət etmədikdə 409 xətası qaytarır.
+    """
     return await OrderService.confirm_order(
         db,
         order_id=order_id,

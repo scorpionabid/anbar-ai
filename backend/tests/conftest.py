@@ -12,12 +12,20 @@ from app.core.config import settings
 _base_url, _db_name = settings.DATABASE_URL.rsplit("/", 1)
 TEST_DATABASE_URL = f"{_base_url}/{_db_name}_test"
 
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for each test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
 # Patch app.core.database
 import app.core.database as db_module
 
 @pytest_asyncio.fixture(scope="session")
-async def engine():
+async def engine(event_loop):
     engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
+    # Patch the global engine in app.core.database
     db_module.engine = engine
     yield engine
     await engine.dispose()

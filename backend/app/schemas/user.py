@@ -1,13 +1,13 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from app.domain.user import UserRole
 
 class UserBase(BaseModel):
-    email: EmailStr
-    full_name: str
-    role: UserRole
-    is_active: bool = True
+    email: EmailStr = Field(..., description="İstifadəçinin email ünvanı", example="user@anbar.az")
+    full_name: str = Field(..., description="İstifadəçinin tam adı (Ad Soyad)", example="Əli Əliyev")
+    role: UserRole = Field(..., description="İstifadəçi rolu (ORG_ADMIN, MANAGER, OPERATOR)")
+    is_active: bool = Field(True, description="İstifadəçinin aktivlik statusu")
 
 class UserCreate(UserBase):
     password: str
@@ -21,7 +21,7 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
 
 class UserRead(UserBase):
-    id: uuid.UUID
+    id: uuid.UUID = Field(..., description="İstifadəçinin unikal identifikatoru")
     tenant_id: uuid.UUID
     created_at: datetime
     updated_at: datetime

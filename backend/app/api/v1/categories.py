@@ -13,20 +13,22 @@ from app.services.product_service import CategoryService
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
-@router.get("", response_model=List[CategoryResponse])
+@router.get("", response_model=List[CategoryResponse], summary="Kateqoriyaların siyahısı")
 async def list_categories(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Bütün məhsul kateqoriyalarının siyahısını qaytarır."""
     return await CategoryService.list_categories(db, current_user.tenant_id)
 
 
-@router.post("", response_model=CategoryResponse, status_code=201)
+@router.post("", response_model=CategoryResponse, status_code=201, summary="Yeni kateqoriya yarat")
 async def create_category(
     data: CategoryCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Yeni məhsul kateqoriyası yaradır. İyerarxiya üçün `parent_id` istifadə oluna bilər."""
     return await CategoryService.create_category(db, current_user.tenant_id, data)
 
 

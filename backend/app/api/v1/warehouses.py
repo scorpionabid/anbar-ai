@@ -13,20 +13,22 @@ from app.services.warehouse_service import WarehouseService
 router = APIRouter(prefix="/warehouses", tags=["warehouses"])
 
 
-@router.get("", response_model=List[WarehouseResponse])
+@router.get("", response_model=List[WarehouseResponse], summary="Anbarların siyahısı")
 async def list_warehouses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Cari tenant-a məxsus bütün anbarların siyahısını qaytarır."""
     return await WarehouseService.list_warehouses(db, current_user.tenant_id)
 
 
-@router.post("", response_model=WarehouseResponse, status_code=201)
+@router.post("", response_model=WarehouseResponse, status_code=201, summary="Yeni anbar yarat")
 async def create_warehouse(
     data: WarehouseCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Yeni anbar yaradır. Anbar adı tenant daxilində unikal olmalıdır."""
     return await WarehouseService.create_warehouse(db, current_user.tenant_id, data)
 
 

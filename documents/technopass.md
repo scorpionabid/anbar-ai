@@ -23,10 +23,10 @@ Environment: Dedicated Server (Linux)
 	•	Domain (models)
 
 1.2 Frontend
-	•	Framework: Next.js
-	•	Language: TypeScript
+	•	Framework: Vite + React
+	•	Language: JavaScript/TypeScript
 	•	State:
-	•	Server state: React Query
+	•	Server state: (Planned/Integrated with API)
 	•	Client state: Zustand
 
 1.3 Database
@@ -95,8 +95,9 @@ ENV=production
 
 4.3 Transactions
 	•	Mandatory for:
-	•	reservation
+	•	reservation (Uses `FOR UPDATE` to lock stock rows)
 	•	order creation
+	•	stock adjustments (Atomic movements via `StockMovement` table)
 
 ⸻
 
@@ -124,8 +125,21 @@ ENV=production
 	•	Levels: INFO, ERROR, DEBUG
 
 6.2 Monitoring
-	•	Metrics endpoint (/metrics)
-	•	Health check (/health)
+	•	Metrics endpoint (/metrics) - Planned
+	•	Health check (/health) - Implemented
+
+⸻
+
+7. TESTING INFRASTRUCTURE
+
+7.1 Backend (Pytest)
+	•	Strategy: "Nuclear Isolation" — hər test üçün müstəqil AsyncSession və NullPool konfiqurasiyası.
+	•	Isolation: Commit/Rollback mexanizmi ilə test məlumatlarının təmizlənməsi.
+	•	Coverage: Core services (Auth, Inventory, Orders) 100% test əhatəsindədir.
+
+7.2 Frontend (Vitest)
+	•	Framework: Vitest + React Testing Library.
+	•	Scope: Store-lar, API interceptor-lar və kritik UI komponentləri.
 
 ⸻
 
