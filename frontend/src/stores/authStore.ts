@@ -10,10 +10,12 @@ interface User {
   tenant_id: string;
 }
 
-interface AuthState {
+export interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   user: User | null;
+  _hasHydrated: boolean;
+  setHasHydrated: (v: boolean) => void;
   setTokens: (access: string, refresh: string) => void;
   setUser: (user: User | null) => void;
   fetchUser: () => Promise<void>;
@@ -26,6 +28,8 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
+      _hasHydrated: false,
+      setHasHydrated: (v: boolean) => set({ _hasHydrated: v }),
       setTokens: (access, refresh) => {
         set({ accessToken: access, refreshToken: refresh });
         if (typeof window !== "undefined") {
@@ -49,6 +53,11 @@ export const useAuthStore = create<AuthState>()(
         }
       },
     }),
-    { name: "anbar-auth" }
+    {
+      name: "anbar-auth",
+      onRehydrateStorage: () => (state: AuthState | undefined) => {
+        state?.setHasHydrated(true);
+      },
+    }
   )
 );

@@ -1,31 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuthStore, type AuthState } from "@/stores/authStore";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
 
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const router = useRouter();
-  const accessToken = useAuthStore((s: any) => s.accessToken);
-  const [mounted, setMounted] = useState(false);
+  const accessToken = useAuthStore((s: AuthState) => s.accessToken);
+  const hasHydrated = useAuthStore((s: AuthState) => s._hasHydrated);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && !accessToken) {
+    if (hasHydrated && !accessToken) {
       router.replace("/login");
     }
-  }, [accessToken, router, mounted]);
+  }, [accessToken, router, hasHydrated]);
 
-  if (!mounted) return null;
+  if (!hasHydrated) return null;
   if (!accessToken) return null;
 
   return (
