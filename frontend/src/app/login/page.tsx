@@ -14,20 +14,18 @@ function cn(...inputs: ClassValue[]) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setTokens, fetchUser, accessToken } = useAuthStore();
+  const { setTokens, fetchUser, accessToken, _hasHydrated } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    if (accessToken) {
-      router.push("/dashboard");
+    if (_hasHydrated && accessToken) {
+      router.replace("/dashboard");
     }
-  }, [accessToken, router]);
+  }, [_hasHydrated, accessToken, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,8 +48,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
-
-  if (!mounted) return null;
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#0f172a] relative overflow-hidden font-sans">
