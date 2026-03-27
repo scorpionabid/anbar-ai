@@ -55,8 +55,13 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "anbar-auth",
-      onRehydrateStorage: () => (state: AuthState | undefined) => {
-        state?.setHasHydrated(true);
+      partialize: (state: AuthState) => ({
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        user: state.user,
+      }),
+      onRehydrateStorage: (state) => () => {
+        state.setHasHydrated(true);
       },
     }
   )
