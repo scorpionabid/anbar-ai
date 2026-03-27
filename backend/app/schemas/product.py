@@ -9,16 +9,34 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class CategoryCreate(BaseModel):
     name: str = Field(..., description="Kateqoriyanın adı", example="Elektronika")
+    description: Optional[str] = Field(None, description="Kateqoriya haqqında ətraflı məlumat")
     parent_id: Optional[uuid.UUID] = Field(None, description="Valideyn kateqoriya ID-si (Tree structure üçün)")
+    is_active: bool = Field(True, description="Kateqoriyanın aktivlik statusu")
+
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Kateqoriyanın adı")
+    description: Optional[str] = Field(None, description="Kateqoriya haqqında ətraflı məlumat")
+    parent_id: Optional[uuid.UUID] = Field(None, description="Valideyn kateqoriya ID-si")
+    is_active: Optional[bool] = Field(None, description="Kateqoriyanın aktivlik statusu")
 
 
 class CategoryResponse(BaseModel):
     id: uuid.UUID
     tenant_id: uuid.UUID
     name: str
+    description: Optional[str]
     parent_id: Optional[uuid.UUID]
+    is_active: bool
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+class CategoryListResponse(BaseModel):
+    data: List[CategoryResponse]
+    total: int
+    page: Optional[int]
+    per_page: Optional[int]
 
 
 # ── ProductVariant ────────────────────────────────────────────────────────────

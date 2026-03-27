@@ -11,6 +11,8 @@ from app.repositories.product_repo import (
 )
 from app.schemas.product import (
     CategoryCreate,
+    CategoryUpdate,
+    CategoryListResponse,
     CategoryResponse,
     ProductCreate,
     ProductListResponse,
@@ -25,10 +27,22 @@ from app.schemas.product import (
 class CategoryService:
     @staticmethod
     async def list_categories(
-        db: AsyncSession, tenant_id: uuid.UUID
-    ) -> list[CategoryResponse]:
-        categories = await CategoryRepository.list(db, tenant_id)
-        return [CategoryResponse.model_validate(c) for c in categories]
+        db: AsyncSession,
+        tenant_id: uuid.UUID,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+    ) -> CategoryListResponse:
+        categories, total = await CategoryRepository.list(
+            db, tenant_id, search, is_active, page, per_page
+        )
+        return CategoryListResponse(
+            data=[CategoryResponse.model_validate(c) for c in categories],
+            total=total,
+            page=page,
+            per_page=per_page,
+        )
 
     @staticmethod
     async def create_category(
@@ -44,6 +58,49 @@ class CategoryService:
                 )
         category = await CategoryRepository.create(db, tenant_id, data)
         return CategoryResponse.model_validate(category)
+
+    @staticmethod
+    async def update_category(
+        db: AsyncSession,
+        category_id: uuid.UUID,
+        tenant_id: uuid.UUID,
+        data: CategoryUpdate,
+    ) -> CategoryResponse:
+        category = await CategoryRepository.get_by_id(db, category_id, tenant_id)
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+            )
+        # Validate parent if provided
+        if data.parent_id:
+            if data.parent_id == category_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Category cannot be its own parent",
+                )
+            parent = await CategoryRepository.get_by_id(db, data.parent_id, tenant_id)
+            if not parent:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Parent category not found",
+                )
+        updated = await CategoryRepository.update(db, category, data)
+        await db.commit()
+        return CategoryResponse.model_validate(updated)
+
+    @staticmethod
+    async def delete_category(
+        db: AsyncSession, category_id: uuid.UUID, tenant_id: uuid.UUID
+    ) -> None:
+        category = await CategoryRepository.get_by_id(db, category_id, tenant_id)
+        if not category:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+            )
+        # Check if has products or children?
+        # For now, just delete (SQLAlchemy will handle FKs or fail)
+        await CategoryRepository.delete(db, category)
+        await db.commit()
 
 
 class ProductService:

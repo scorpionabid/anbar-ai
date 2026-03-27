@@ -83,6 +83,13 @@ export interface Category {
   children?: Category[];
 }
 
+export interface CategoryListResponse {
+  data: Category[];
+  total: number;
+  page: number | null;
+  per_page: number | null;
+}
+
 // Customer
 export interface Customer {
   id: string;

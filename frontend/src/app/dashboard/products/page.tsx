@@ -494,7 +494,7 @@ export default function ProductsPage() {
                 {(data?.data ?? []).map((p) => {
                   const isExpanded = expandedRows.has(p.id);
                   const catName =
-                    categories?.find((c) => c.id === p.category_id)?.name ?? "—";
+                    categories?.data?.find((c) => c.id === p.category_id)?.name ?? "—";
 
                   return (
                     <>
@@ -701,7 +701,7 @@ export default function ProductsPage() {
                 }
               >
                 <option value="">Kateqoriya seçin</option>
-                {(categories ?? []).map((c) => (
+                {(categories?.data ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>

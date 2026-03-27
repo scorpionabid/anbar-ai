@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.domain.product import Category, Product, ProductVariant
 from app.schemas.product import (
     CategoryCreate,
+    CategoryUpdate,
     ProductCreate,
     ProductUpdate,
     ProductVariantCreate,
@@ -17,13 +18,35 @@ from app.schemas.product import (
 
 class CategoryRepository:
     @staticmethod
-    async def list(db: AsyncSession, tenant_id: uuid.UUID) -> list[Category]:
-        result = await db.execute(
-            select(Category)
-            .where(Category.tenant_id == tenant_id)
-            .order_by(Category.name)
-        )
-        return list(result.scalars().all())
+    async def list(
+        db: AsyncSession,
+        tenant_id: uuid.UUID,
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+    ) -> tuple[list[Category], int]:
+        query = select(Category).where(Category.tenant_id == tenant_id)
+
+        if search:
+            query = query.where(
+                (Category.name.ilike(f"%{search}%"))
+                | (Category.description.ilike(f"%{search}%"))
+            )
+        if is_active is not None:
+            query = query.where(Category.is_active == is_active)
+
+        # Total count
+        count_q = select(func.count()).select_from(query.subquery())
+        total = (await db.execute(count_q)).scalar_one()
+
+        # Ordering & Pagination
+        query = query.order_by(Category.name)
+        if page and per_page:
+            query = query.offset((page - 1) * per_page).limit(per_page)
+
+        result = await db.execute(query)
+        return list(result.scalars().all()), total
 
     @staticmethod
     async def get_by_id(
@@ -45,6 +68,21 @@ class CategoryRepository:
         await db.flush()
         await db.refresh(category)
         return category
+
+    @staticmethod
+    async def update(
+        db: AsyncSession, category: Category, data: CategoryUpdate
+    ) -> Category:
+        for field, value in data.model_dump(exclude_none=True).items():
+            setattr(category, field, value)
+        await db.flush()
+        await db.refresh(category)
+        return category
+
+    @staticmethod
+    async def delete(db: AsyncSession, category: Category) -> None:
+        await db.delete(category)
+        await db.flush()
 
 
 class ProductVariantRepository:

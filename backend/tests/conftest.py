@@ -63,7 +63,12 @@ async def client(engine) -> AsyncClient:
     async def override_get_db():
         Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         async with Session() as session:
-            yield session
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
     async with AsyncClient(
