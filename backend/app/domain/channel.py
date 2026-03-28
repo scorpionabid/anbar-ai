@@ -11,10 +11,19 @@ from app.domain.base import TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class ChannelType(str, enum.Enum):
-    STORE = "store"             # öz mağazası
-    MARKETPLACE = "marketplace" # Trendyol, umico.az, Amazon və s.
-    WHOLESALE = "wholesale"     # topdan satış (B2B)
-    API = "api"                 # custom API inteqrasiyası
+    MANUAL = "manual"
+    SHOPIFY = "shopify"
+    WOOCOMMERCE = "woocommerce"
+    TRENDYOL = "trendyol"
+    AMAZON = "amazon"
+    EBAY = "ebay"
+    CUSTOM = "custom"
+
+    # Legacy (keep for compatibility if needed, but the ones above are preferred)
+    STORE = "store"
+    MARKETPLACE = "marketplace"
+    WHOLESALE = "wholesale"
+    API = "api"
 
 
 class Channel(UUIDPrimaryKeyMixin, TimestampMixin, Base):

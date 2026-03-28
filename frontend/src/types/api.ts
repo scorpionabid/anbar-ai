@@ -117,9 +117,9 @@ export interface Supplier {
   name: string;
   email: string | null;
   phone: string | null;
-  contact_person: string | null;
+  contact_name: string | null;
   address: string | null;
-  tax_id: string | null;
+  tax_number: string | null;
   payment_terms_days: number;
   notes: string | null;
   is_active: boolean;

@@ -29,11 +29,12 @@ async def list_channels(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     is_active: Optional[bool] = Query(None),
+    search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return await ChannelService.list_channels(
-        db, current_user.tenant_id, page, per_page, is_active
+        db, current_user.tenant_id, page, per_page, is_active, search
     )
 
 

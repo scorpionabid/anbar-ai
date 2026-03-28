@@ -2,11 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api";
 import type { Channel, ChannelType } from "@/types/api";
 
-export function useChannels() {
+export function useChannels(params?: { search?: string; is_active?: boolean }) {
   return useQuery<Channel[]>({
-    queryKey: ["channels"],
+    queryKey: ["channels", params],
     queryFn: async () => {
-      const { data } = await apiClient.get<Channel[]>("/channels");
+      console.log("[useChannels] Fetching with params:", params);
+      const { data } = await apiClient.get<Channel[]>("/channels", { params });
       return data;
     },
   });
@@ -28,10 +29,14 @@ export function useCreateChannel() {
   const qc = useQueryClient();
   return useMutation<Channel, Error, ChannelCreatePayload>({
     mutationFn: async (payload) => {
+      console.log("[useCreateChannel] Creating channel:", payload);
       const { data } = await apiClient.post<Channel>("/channels", payload);
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+    onSuccess: () => {
+      console.log("[useCreateChannel] Success");
+      qc.invalidateQueries({ queryKey: ["channels"] });
+    },
   });
 }
 
@@ -39,10 +44,14 @@ export function useUpdateChannel() {
   const qc = useQueryClient();
   return useMutation<Channel, Error, { id: string; payload: ChannelUpdatePayload }>({
     mutationFn: async ({ id, payload }) => {
+      console.log(`[useUpdateChannel] Updating channel ${id}:`, payload);
       const { data } = await apiClient.put<Channel>(`/channels/${id}`, payload);
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+    onSuccess: (data) => {
+      console.log("[useUpdateChannel] Success:", data);
+      qc.invalidateQueries({ queryKey: ["channels"] });
+    },
   });
 }
 
@@ -50,8 +59,12 @@ export function useDeleteChannel() {
   const qc = useQueryClient();
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
+      console.log(`[useDeleteChannel] Deleting channel ${id}`);
       await apiClient.delete(`/channels/${id}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+    onSuccess: () => {
+      console.log("[useDeleteChannel] Success");
+      qc.invalidateQueries({ queryKey: ["channels"] });
+    },
   });
 }

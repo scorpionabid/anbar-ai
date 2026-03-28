@@ -16,10 +16,13 @@ class ChannelRepository:
         page: int = 1,
         per_page: int = 20,
         is_active: Optional[bool] = None,
+        search: Optional[str] = None,
     ) -> tuple[list[Channel], int]:
         query = select(Channel).where(Channel.tenant_id == tenant_id)
         if is_active is not None:
             query = query.where(Channel.is_active == is_active)
+        if search:
+            query = query.where(Channel.name.ilike(f"%{search}%"))
 
         count_q = select(func.count()).select_from(query.subquery())
         total = (await db.execute(count_q)).scalar_one()

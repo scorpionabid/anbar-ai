@@ -25,9 +25,10 @@ class ChannelService:
         page: int = 1,
         per_page: int = 20,
         is_active: Optional[bool] = None,
+        search: Optional[str] = None,
     ) -> ChannelListResponse:
         channels, total = await ChannelRepository.list(
-            db, tenant_id, page, per_page, is_active
+            db, tenant_id, page, per_page, is_active, search
         )
         return ChannelListResponse(
             data=[ChannelResponse.model_validate(c) for c in channels],
