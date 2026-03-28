@@ -64,7 +64,7 @@ export default function LoginPage() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full" />
 
-      <div className="w-full max-w-md p-6 relative z-10">
+      <div className="w-full max-w-sm p-6 relative z-10">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mb-4 shadow-lg shadow-blue-600/30">
             <Lock className="text-white" size={32} />
@@ -149,12 +149,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <p className="text-center text-gray-500 text-sm mt-8">
-            Hesabınız yoxdur?{" "}
-            <button className="text-blue-500 hover:text-blue-400 font-semibold transition-colors">
-              Qeydiyyatdan keçin
-            </button>
-          </p>
+
         </div>
 
         <div className="mt-12 text-center">

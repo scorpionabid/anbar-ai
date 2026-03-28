@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import decode_token
-from app.domain.user import User, UserRole
+from app.domain.user import Permission, User, UserRole
 from app.repositories.user_repo import UserRepository
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -39,10 +39,29 @@ async def get_current_user(
 
 def require_roles(*roles: UserRole):
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in roles and current_user.role != UserRole.SUPER_ADMIN:
+        if current_user.role == UserRole.SUPER_ADMIN:
+            return current_user
+        if current_user.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient roles",
+            )
+        return current_user
+    return role_checker
+
+
+def require_permissions(*permissions: Permission):
+    async def permission_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role == UserRole.SUPER_ADMIN:
+            return current_user
+        
+        user_permissions = set(current_user.permissions or [])
+        required_permissions = set(p.value for p in permissions)
+        
+        if not required_permissions.issubset(user_permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",
             )
         return current_user
-    return role_checker
+    return permission_checker

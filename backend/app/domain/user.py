@@ -1,8 +1,8 @@
 import enum
 import uuid
 
-from sqlalchemy import Enum, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Enum, ForeignKey, String, JSON
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -18,6 +18,37 @@ class UserRole(str, enum.Enum):
     VENDOR = "vendor"
 
 
+class Permission(str, enum.Enum):
+    # Inventory
+    INVENTORY_READ = "inventory:read"
+    INVENTORY_WRITE = "inventory:write"
+    INVENTORY_MANAGE = "inventory:manage"
+
+    # Orders & Sales
+    ORDERS_READ = "orders:read"
+    ORDERS_WRITE = "orders:write"
+    ORDERS_MANAGE = "orders:manage"
+
+    # Customers
+    CUSTOMERS_READ = "customers:read"
+    CUSTOMERS_WRITE = "customers:write"
+    CUSTOMERS_MANAGE = "customers:manage"
+
+    # Settings & Users
+    SETTINGS_MANAGE = "settings:manage"
+    USERS_MANAGE = "users:manage"
+
+    # AI
+    AI_USE = "ai:use"
+    AI_MANAGE = "ai:manage"
+
+    # Channels
+    CHANNELS_MANAGE = "channels:manage"
+
+    # Reports
+    REPORTS_VIEW = "reports:view"
+
+
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "users"
 
@@ -29,6 +60,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="user_role"), nullable=False, default=UserRole.OPERATOR
+    )
+    permissions: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 

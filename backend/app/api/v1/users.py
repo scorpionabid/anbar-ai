@@ -72,3 +72,18 @@ async def deactivate_user(
     """İstifadəçini silmir — is_active = False edir. ORG_ADMIN+ tələb olunur."""
     user = await service.deactivate_user(user_id, current_user.tenant_id)
     return {"data": UserRead.model_validate(user), "message": "ok"}
+
+
+@router.delete(
+    "/{user_id}/permanent",
+    response_model=dict,
+    summary="İstifadəçini tamamilə sil (hard delete)",
+)
+async def delete_user(
+    user_id: uuid.UUID,
+    service: UserService = Depends(_get_service),
+    current_user: User = Depends(require_roles(UserRole.ORG_ADMIN, UserRole.SUPER_ADMIN)),
+) -> dict:
+    """İstifadəçini verilənlər bazasından tamamilə silir. ORG_ADMIN+ tələb olunur."""
+    await service.delete_user(user_id, current_user.tenant_id)
+    return {"message": "User permanently deleted"}

@@ -52,6 +52,7 @@ const emptyProductForm: ProductForm = {
 interface VariantForm {
   name: string;
   sku: string;
+  barcode: string;
   price: string;
   cost_price: string;
   is_active: boolean;
@@ -60,6 +61,7 @@ interface VariantForm {
 const emptyVariantForm: VariantForm = {
   name: "",
   sku: "",
+  barcode: "",
   price: "",
   cost_price: "",
   is_active: true,
@@ -120,7 +122,7 @@ function VariantTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/40 bg-secondary/30">
-                {["SKU", "Ad", "Qiymət", "Status", "Əməliyyatlar"].map((h) => (
+                {["SKU", "Barkod", "Ad", "Qiymət", "Status", "Əməliyyatlar"].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
@@ -138,6 +140,9 @@ function VariantTable({
                 >
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                     {v.sku}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {v.barcode || "—"}
                   </td>
                   <td className="px-4 py-3 font-semibold text-foreground">{v.name}</td>
                   <td className="px-4 py-3 text-foreground font-medium">
@@ -355,6 +360,7 @@ export default function ProductsPage() {
     setVariantForm({
       name: variant.name,
       sku: variant.sku,
+      barcode: variant.barcode ?? "",
       price: String(variant.price),
       cost_price: "",
       is_active: true,
@@ -403,6 +409,7 @@ export default function ProductsPage() {
           payload: {
             name: variantForm.name.trim(),
             sku: variantForm.sku.trim(),
+            barcode: variantForm.barcode.trim() || undefined,
             price: priceNum,
             cost_price: costNum,
             is_active: variantForm.is_active,
@@ -414,6 +421,7 @@ export default function ProductsPage() {
           payload: {
             name: variantForm.name.trim(),
             sku: variantForm.sku.trim(),
+            barcode: variantForm.barcode.trim() || undefined,
             price: priceNum,
             cost_price: costNum,
             is_active: variantForm.is_active,
@@ -765,8 +773,18 @@ export default function ProductsPage() {
               <Input type="number" min="0" step="0.01" placeholder="0.00" value={variantForm.price} onChange={(e) => setVariantForm(f => ({ ...f, price: e.target.value }))} required />
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-bold text-foreground">Barkod</label>
+              <Input placeholder="EAN / UPC / Internal" value={variantForm.barcode} onChange={(e) => setVariantForm(f => ({ ...f, barcode: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
               <label className="text-sm font-bold text-foreground">Maya dəyəri (AZN)</label>
               <Input type="number" min="0" step="0.01" placeholder="0.00" value={variantForm.cost_price} onChange={(e) => setVariantForm(f => ({ ...f, cost_price: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              {/* Spacer or additional field can go here */}
             </div>
           </div>
 

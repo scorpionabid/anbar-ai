@@ -8,6 +8,7 @@ interface User {
   full_name: string;
   role: string;
   tenant_id: string;
+  permissions: string[];
 }
 
 export interface AuthState {
@@ -34,6 +35,9 @@ export const useAuthStore = create<AuthState>()(
         set({ accessToken: access, refreshToken: refresh });
         if (typeof window !== "undefined") {
           localStorage.setItem("access_token", access);
+          localStorage.setItem("refresh_token", refresh);
+          // Middleware cookie oxuduğu üçün cookie-yə də yazırıq (SameSite=Strict)
+          document.cookie = `access_token=${access}; path=/; SameSite=Strict; max-age=1800`;
         }
       },
       setUser: (user) => set({ user }),
@@ -50,6 +54,8 @@ export const useAuthStore = create<AuthState>()(
         set({ accessToken: null, refreshToken: null, user: null });
         if (typeof window !== "undefined") {
           localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          document.cookie = "access_token=; path=/; max-age=0";
         }
       },
     }),
@@ -60,8 +66,13 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: state.refreshToken,
         user: state.user,
       }),
-      onRehydrateStorage: (state) => () => {
-        state.setHasHydrated(true);
+      onRehydrateStorage: () => (hydratedState) => {
+        if (!hydratedState) return;
+        hydratedState.setHasHydrated(true);
+        // localStorage-dan yüklənən token varsa cookie-ni bərpa et (middleware üçün)
+        if (hydratedState.accessToken && typeof window !== "undefined") {
+          document.cookie = `access_token=${hydratedState.accessToken}; path=/; SameSite=Strict; max-age=1800`;
+        }
       },
     }
   )

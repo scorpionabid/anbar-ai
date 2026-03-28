@@ -10,6 +10,7 @@ export interface VariantSummary {
   sku: string;
   name: string;
   price: number;
+  barcode?: string | null;
 }
 
 export interface InventoryItem {
@@ -33,6 +34,7 @@ export interface ProductVariant {
   sku: string;
   name: string;
   price: number;
+  barcode?: string | null;
   attributes: string | null;
   created_at: string;
   updated_at: string;
@@ -341,11 +343,29 @@ export type UserRole =
   | "operator"
   | "vendor";
 
+export type Permission =
+  | "inventory:read"
+  | "inventory:write"
+  | "inventory:manage"
+  | "orders:read"
+  | "orders:write"
+  | "orders:manage"
+  | "customers:read"
+  | "customers:write"
+  | "customers:manage"
+  | "settings:manage"
+  | "users:manage"
+  | "ai:use"
+  | "ai:manage"
+  | "channels:manage"
+  | "reports:view";
+
 export interface UserRead {
   id: string;
   email: string;
   full_name: string;
   role: UserRole;
+  permissions: Permission[];
   is_active: boolean;
   tenant_id: string;
   created_at: string;
@@ -357,11 +377,13 @@ export interface UserCreate {
   full_name: string;
   password: string;
   role: UserRole;
+  permissions?: Permission[];
 }
 
 export interface UserUpdate {
   full_name?: string;
   role?: UserRole;
+  permissions?: Permission[];
   is_active?: boolean;
 }
 

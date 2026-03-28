@@ -53,6 +53,7 @@ class ProductVariant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "product_variants"
     __table_args__ = (
         UniqueConstraint("tenant_id", "sku", name="uq_variant_tenant_sku"),
+        UniqueConstraint("tenant_id", "barcode", name="uq_variant_tenant_barcode"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(

@@ -38,6 +38,17 @@ export function useDeactivateUser() {
   });
 }
 
+// DELETE /api/v1/users/{id}/permanent — permanently deletes the user
+export function useHardDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      await apiClient.delete(`/users/${id}/permanent`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
 // PATCH /api/v1/auth/me — update the currently authenticated user's own profile
 export function useUpdateProfile() {
   const qc = useQueryClient();

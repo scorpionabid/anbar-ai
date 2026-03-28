@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import hash_password, verify_password
 from app.domain.user import User
 from app.repositories.user_repo import UserRepository
-from app.schemas.user import UserCreate, UserProfileUpdate, UserUpdate
+from app.schemas.user import DEFAULT_ROLE_PERMISSIONS, UserCreate, UserProfileUpdate, UserUpdate
 
 
 class UserService:
@@ -16,14 +16,13 @@ class UserService:
     async def list_users(self, tenant_id: uuid.UUID) -> list[User]:
         return await self.repo.list_by_tenant(tenant_id)
 
-    async def create_user(self, tenant_id: uuid.UUID, data: UserCreate) -> User:
-        # Email uniqueness check across ALL tenants (DB has unique constraint)
-        existing = await self.repo.get_by_email(data.email)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="A user with this email already exists",
-            )
+    async def create_user(
+        self, tenant_id: uuid.UUID, data: UserCreate
+    ) -> User:
+        # Assign default permissions if none provided
+        permissions = data.permissions
+        if permissions is None:
+            permissions = DEFAULT_ROLE_PERMISSIONS.get(data.role, [])
 
         user = User(
             tenant_id=tenant_id,
@@ -31,6 +30,7 @@ class UserService:
             full_name=data.full_name,
             hashed_password=hash_password(data.password),
             role=data.role,
+            permissions=[p.value for p in permissions] if permissions else [],
         )
         user = await self.repo.create(user)
         await self.repo.db.commit()
@@ -49,6 +49,11 @@ class UserService:
         if not updates:
             return user
 
+        # Role dəyişdikdə, permissions açıq verilməyibsə, yeni rolun default permissions-ını tətbiq et
+        if data.role is not None and data.permissions is None:
+            default_perms = DEFAULT_ROLE_PERMISSIONS.get(data.role, [])
+            updates["permissions"] = [p.value for p in default_perms]
+
         user = await self.repo.update(user, **updates)
         await self.repo.db.commit()
         return user
@@ -65,6 +70,17 @@ class UserService:
         user = await self.repo.update(user, is_active=False)
         await self.repo.db.commit()
         return user
+
+    async def delete_user(self, user_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
+        """Permanently delete a user (Hard Delete)"""
+        user = await self.repo.get_by_id_and_tenant(user_id, tenant_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        
+        await self.repo.delete(user)
+        await self.repo.db.commit()
 
     async def update_my_profile(
         self, user_id: uuid.UUID, data: UserProfileUpdate

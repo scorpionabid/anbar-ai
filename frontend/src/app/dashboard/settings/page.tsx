@@ -28,11 +28,13 @@ import {
   Globe,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useUsers } from "@/hooks/useUsers";
 import {
   useCreateUser,
   useUpdateUser,
   useDeactivateUser,
+  useHardDeleteUser,
   useUpdateProfile,
 } from "@/hooks/useUserMutations";
 import { useSettings, useSettingsMutation } from "@/hooks/useSettings";
@@ -49,6 +51,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import type {
   UserRole,
+  Permission,
   UserRead,
   TenantSettings,
   AIProvider,
@@ -63,14 +66,14 @@ import type {
 
 // ── Tab definitions ──────────────────────────────────────────────────────────
 
-const TABS = [
+const ALL_TABS: { id: string; label: string; permission?: Permission }[] = [
   { id: "profil",     label: "Profilim" },
-  { id: "users",      label: "İstifadəçilər" },
-  { id: "sirket",     label: "Şirkət" },
-  { id: "ai",         label: "AI & İnteqrasiyalar" },
-  { id: "bildirish",  label: "Bildirişlər" },
-  { id: "aktivlik",   label: "Aktivlik" },
-  { id: "webhooks",   label: "Webhooks" },
+  { id: "users",      label: "İstifadəçilər", permission: "users:manage" },
+  { id: "sirket",     label: "Şirkət",        permission: "settings:manage" },
+  { id: "ai",         label: "AI & İnteqrasiyalar", permission: "ai:manage" },
+  { id: "bildirish",  label: "Bildirişlər",   permission: "settings:manage" },
+  { id: "aktivlik",   label: "Aktivlik",      permission: "reports:view" },
+  { id: "webhooks",   label: "Webhooks",      permission: "settings:manage" },
 ];
 
 // ── Role helpers ─────────────────────────────────────────────────────────────
@@ -103,6 +106,45 @@ const ALL_ROLES: UserRole[] = [
   "operator",
   "vendor",
 ];
+
+const PERMISSION_LABELS: Record<Permission, string> = {
+  "inventory:read": "Anbar (Baxış)",
+  "inventory:write": "Anbar (Dəyişiklik)",
+  "inventory:manage": "Anbar (İdarəetmə)",
+  "orders:read": "Sifarişlər (Baxış)",
+  "orders:write": "Sifarişlər (Yaradın)",
+  "orders:manage": "Sifarişləri İdarəetmə",
+  "customers:read": "Müştərilər (Baxış)",
+  "customers:write": "Müştəri Əlavə Etmə",
+  "customers:manage": "Müştəri İdarəetmə",
+  "settings:manage": "Ayarları İdarə Etmə",
+  "users:manage": "İstifadəçi İdarəetmə",
+  "ai:use": "AI Funksiyalar",
+  "ai:manage": "AI Parametrlər",
+  "channels:manage": "Kanalları İdarə Etmə",
+  "reports:view": "Hesabatlara Baxış",
+};
+
+const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  super_admin: [
+    "inventory:read", "inventory:write", "inventory:manage",
+    "orders:read", "orders:write", "orders:manage",
+    "customers:read", "customers:write", "customers:manage",
+    "settings:manage", "users:manage", "ai:use", "ai:manage",
+    "channels:manage", "reports:view"
+  ],
+  org_admin: [
+    "inventory:read", "inventory:write", "inventory:manage",
+    "orders:read", "orders:write", "orders:manage",
+    "customers:read", "customers:write", "customers:manage",
+    "settings:manage", "users:manage", "ai:use", "ai:manage",
+    "channels:manage", "reports:view"
+  ],
+  warehouse_manager: ["inventory:read", "inventory:write", "inventory:manage", "customers:read", "reports:view"],
+  sales_manager: ["orders:read", "orders:write", "orders:manage", "customers:read", "customers:write", "customers:manage", "reports:view"],
+  operator: ["inventory:read", "orders:read", "customers:read"],
+  vendor: [],
+};
 
 // ── AI provider definitions ───────────────────────────────────────────────────
 
@@ -376,18 +418,18 @@ function ProfilTab() {
   );
 }
 
-// ── Tab 2: İstifadəçilər ──────────────────────────────────────────────────────
-
 interface UserCreateForm {
   full_name: string;
   email: string;
   password: string;
   role: UserRole;
+  permissions: Permission[];
 }
 
 interface UserEditForm {
   full_name: string;
   role: UserRole;
+  permissions: Permission[];
   is_active: boolean;
 }
 
@@ -400,6 +442,7 @@ function UsersTab() {
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const deactivateUser = useDeactivateUser();
+  const hardDeleteUser = useHardDeleteUser();
 
   // Create modal
   const [createOpen, setCreateOpen] = useState(false);
@@ -408,6 +451,7 @@ function UsersTab() {
     email: "",
     password: "",
     role: "operator",
+    permissions: DEFAULT_ROLE_PERMISSIONS["operator"],
   });
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -416,12 +460,16 @@ function UsersTab() {
   const [editForm, setEditForm] = useState<UserEditForm>({
     full_name: "",
     role: "operator",
+    permissions: [],
     is_active: true,
   });
   const [editError, setEditError] = useState<string | null>(null);
 
   // Deactivate confirmation
-  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
+
+  // Hard Delete confirmation
+  const [confirmHardDeleteId, setConfirmHardDeleteId] = useState<string | null>(null);
 
   if (!isAdmin) {
     return (
@@ -442,7 +490,13 @@ function UsersTab() {
   }
 
   function openCreate() {
-    setCreateForm({ full_name: "", email: "", password: "", role: "operator" });
+    setCreateForm({ 
+      full_name: "", 
+      email: "", 
+      password: "", 
+      role: "operator",
+      permissions: DEFAULT_ROLE_PERMISSIONS["operator"]
+    });
     setCreateError(null);
     setCreateOpen(true);
   }
@@ -454,7 +508,12 @@ function UsersTab() {
 
   function openEdit(u: UserRead) {
     setEditTarget(u);
-    setEditForm({ full_name: u.full_name, role: u.role, is_active: u.is_active });
+    setEditForm({ 
+      full_name: u.full_name, 
+      role: u.role, 
+      permissions: u.permissions || [],
+      is_active: u.is_active 
+    });
     setEditError(null);
   }
 
@@ -469,16 +528,52 @@ function UsersTab() {
     if (!createForm.full_name.trim()) { setCreateError("Ad Soyad mütləqdir."); return; }
     if (!createForm.email.trim()) { setCreateError("E-poçt mütləqdir."); return; }
     if (createForm.password.length < 8) { setCreateError("Şifrə ən azı 8 simvol olmalıdır."); return; }
+
     try {
       await createUser.mutateAsync({
         full_name: createForm.full_name.trim(),
         email: createForm.email.trim(),
         password: createForm.password,
         role: createForm.role,
+        permissions: createForm.permissions,
       });
       closeCreate();
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Xəta baş verdi.");
+    }
+  }
+
+  function togglePermission(form: "create" | "edit", p: Permission) {
+    if (form === "create") {
+      setCreateForm(prev => ({
+        ...prev,
+        permissions: prev.permissions.includes(p)
+          ? prev.permissions.filter(x => x !== p)
+          : [...prev.permissions, p]
+      }));
+    } else {
+      setEditForm(prev => ({
+        ...prev,
+        permissions: prev.permissions.includes(p)
+          ? prev.permissions.filter(x => x !== p)
+          : [...prev.permissions, p]
+      }));
+    }
+  }
+
+  function handleRoleChange(form: "create" | "edit", role: UserRole) {
+    if (form === "create") {
+      setCreateForm(prev => ({
+        ...prev,
+        role,
+        permissions: DEFAULT_ROLE_PERMISSIONS[role]
+      }));
+    } else {
+      setEditForm(prev => ({
+        ...prev,
+        role,
+        permissions: DEFAULT_ROLE_PERMISSIONS[role]
+      }));
     }
   }
 
@@ -487,12 +582,14 @@ function UsersTab() {
     if (!editTarget) return;
     setEditError(null);
     if (!editForm.full_name.trim()) { setEditError("Ad Soyad mütləqdir."); return; }
+
     try {
       await updateUser.mutateAsync({
         id: editTarget.id,
         payload: {
           full_name: editForm.full_name.trim(),
           role: editForm.role,
+          permissions: editForm.permissions as Permission[],
           is_active: editForm.is_active,
         },
       });
@@ -505,7 +602,16 @@ function UsersTab() {
   async function handleDeactivate(id: string) {
     try {
       await deactivateUser.mutateAsync(id);
-      setDeactivatingId(null);
+      setConfirmDeactivateId(null);
+    } catch {
+      // silently fail
+    }
+  }
+
+  async function handleHardDelete(id: string) {
+    try {
+      await hardDeleteUser.mutateAsync(id);
+      setConfirmHardDeleteId(null);
     } catch {
       // silently fail
     }
@@ -536,7 +642,7 @@ function UsersTab() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
-                  {["Ad / E-poçt", "Rol", "Status", "Əməliyyatlar"].map((h) => (
+                  {["Ad / E-poçt", "Rol / İcazələr", "Status", "Əməliyyatlar"].map((h) => (
                     <th
                       key={h}
                       className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
@@ -595,9 +701,21 @@ function UsersTab() {
 
                       {/* Role */}
                       <td className="px-6 py-4">
-                        <Badge variant={rb.variant} className={rb.className}>
-                          {ROLE_LABELS[u.role]}
-                        </Badge>
+                        <div className="flex flex-col gap-1.5">
+                          <Badge variant={rb.variant} className={rb.className}>
+                            {ROLE_LABELS[u.role]}
+                          </Badge>
+                          {u.permissions && u.permissions.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground font-medium flex flex-wrap gap-1">
+                              {u.permissions.slice(0, 3).map(p => (
+                                <span key={p} className="bg-secondary px-1 rounded truncate max-w-[80px]">
+                                  {PERMISSION_LABELS[p]}
+                                </span>
+                              ))}
+                              {u.permissions.length > 3 && <span>+{u.permissions.length - 3}</span>}
+                            </p>
+                          )}
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -609,32 +727,39 @@ function UsersTab() {
 
                       {/* Actions */}
                       <td className="px-6 py-4">
-                        {deactivatingId === u.id ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Əminsiniz?</span>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeactivate(u.id)}
-                              disabled={deactivateUser.isPending}
-                            >
-                              Bəli
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setDeactivatingId(null)}
-                            >
-                              Xeyr
-                            </Button>
+                        {confirmDeactivateId === u.id || confirmHardDeleteId === u.id ? (
+                          <div className="flex flex-col items-end gap-2 animate-in fade-in zoom-in duration-200">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-destructive">
+                              {confirmHardDeleteId === u.id ? "Daimi silünsün?" : "Deaktiv edilsin?"}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => confirmHardDeleteId === u.id ? handleHardDelete(u.id) : handleDeactivate(u.id)}
+                                disabled={deactivateUser.isPending || hardDeleteUser.isPending}
+                                className="h-7 px-3 text-[11px]"
+                              >
+                                {hardDeleteUser.isPending || deactivateUser.isPending ? "..." : "Bəli"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => { setConfirmDeactivateId(null); setConfirmHardDeleteId(null); }}
+                                className="h-7 px-3 text-[11px]"
+                              >
+                                Xeyr
+                              </Button>
+                            </div>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={() => openEdit(u)}
                               aria-label="Düzəlt"
+                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary rounded-lg"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -642,13 +767,22 @@ function UsersTab() {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                onClick={() => setDeactivatingId(u.id)}
-                                aria-label="Deaktiv et"
-                                className="text-destructive hover:text-destructive"
+                                onClick={() => setConfirmDeactivateId(u.id)}
+                                title="Deaktiv et"
+                                className="h-8 w-8 text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 rounded-lg"
                               >
                                 <UserX className="h-4 w-4" />
                               </Button>
                             )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setConfirmHardDeleteId(u.id)}
+                              title="Daimi sil"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         )}
                       </td>
@@ -706,7 +840,7 @@ function UsersTab() {
               label="Rol"
               value={createForm.role}
               onChange={(e) =>
-                setCreateForm((f) => ({ ...f, role: e.target.value as UserRole }))
+                handleRoleChange("create", e.target.value as UserRole)
               }
             >
               {ALL_ROLES.map((r) => (
@@ -715,6 +849,28 @@ function UsersTab() {
                 </option>
               ))}
             </Select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              İcazələr (Rola görə təyin edilib)
+            </label>
+            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl border border-border/50 bg-secondary/20">
+              {Object.entries(PERMISSION_LABELS).map(([key, label]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`create-perm-${key}`}
+                    checked={createForm.permissions.includes(key as Permission)}
+                    onChange={() => togglePermission("create", key as Permission)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                  <label htmlFor={`create-perm-${key}`} className="text-xs font-medium cursor-pointer">
+                    {label}
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
           {createError && (
             <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
@@ -776,6 +932,31 @@ function UsersTab() {
               <option value="active">Aktiv</option>
               <option value="inactive">Deaktiv</option>
             </Select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Shield className="h-3 w-3" /> Fərdi İcazələr
+            </label>
+            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl border border-border/50 bg-secondary/20 max-h-[200px] overflow-y-auto custom-scrollbar">
+              {Object.entries(PERMISSION_LABELS).map(([key, label]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`edit-perm-${key}`}
+                    checked={editForm.permissions.includes(key as Permission)}
+                    onChange={() => togglePermission("edit", key as Permission)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                  <label htmlFor={`edit-perm-${key}`} className="text-xs font-medium cursor-pointer">
+                    {label}
+                  </label>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground italic">
+              * Rola uyğun gəlməyən xüsusi icazələr vermək mümkündür.
+            </p>
           </div>
           {editError && (
             <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
@@ -1712,13 +1893,22 @@ function WebhooksTab() {
 // ── Page Shell ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { can } = usePermissions();
+  const visibleTabs = ALL_TABS.filter((t) => !t.permission || can(t.permission));
   const [activeTab, setActiveTab] = useState("profil");
+
+  // Aktiv tab görünən tablar arasında deyilsə, birinciyə keç
+  useEffect(() => {
+    if (!visibleTabs.find((t) => t.id === activeTab)) {
+      setActiveTab(visibleTabs[0]?.id ?? "profil");
+    }
+  }, [visibleTabs, activeTab]);
 
   return (
     <div className="flex flex-col min-h-full">
       {/* Sticky tab bar */}
       <div className="px-8 pt-6 border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
-        <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+        <Tabs tabs={visibleTabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
       {/* Tab content */}

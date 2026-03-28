@@ -3,13 +3,47 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 
-from app.domain.user import UserRole
+from app.domain.user import Permission, UserRole
+
+
+# Default Permissions Map based on Role
+DEFAULT_ROLE_PERMISSIONS: dict[UserRole, list[Permission]] = {
+    UserRole.SUPER_ADMIN: list(Permission),
+    UserRole.ORG_ADMIN: list(Permission),
+    # Warehouse Manager: can read everything, manage inventory, see products
+    UserRole.WAREHOUSE_MANAGER: [
+        Permission.INVENTORY_READ,
+        Permission.INVENTORY_WRITE,
+        Permission.INVENTORY_MANAGE,
+        Permission.CUSTOMERS_READ,
+        Permission.REPORTS_VIEW,
+    ],
+    # Sales Manager: can read everything, manage sales/orders/customers
+    UserRole.SALES_MANAGER: [
+        Permission.ORDERS_READ,
+        Permission.ORDERS_WRITE,
+        Permission.ORDERS_MANAGE,
+        Permission.CUSTOMERS_READ,
+        Permission.CUSTOMERS_WRITE,
+        Permission.CUSTOMERS_MANAGE,
+        Permission.REPORTS_VIEW,
+    ],
+    # Operator: can read inventory/orders/customers, but can't manage/delete
+    UserRole.OPERATOR: [
+        Permission.INVENTORY_READ,
+        Permission.ORDERS_READ,
+        Permission.CUSTOMERS_READ,
+    ],
+    # Vendor: limited access, usually just to their own context (handled via logic)
+    UserRole.VENDOR: [],
+}
 
 
 class UserBase(BaseModel):
     email: EmailStr = Field(..., description="İstifadəçinin email ünvanı", example="user@anbar.az")
     full_name: str = Field(..., description="İstifadəçinin tam adı (Ad Soyad)", example="Əli Əliyev")
     role: UserRole = Field(..., description="İstifadəçi rolu (ORG_ADMIN, MANAGER, OPERATOR)")
+    permissions: list[Permission] = Field(default_factory=list, description="Fərdi icazələrin siyahısı")
     is_active: bool = Field(True, description="İstifadəçinin aktivlik statusu")
 
 
@@ -18,6 +52,7 @@ class UserCreate(BaseModel):
     full_name: str
     password: str = Field(..., min_length=8, description="Minimum 8 simvol")
     role: UserRole = UserRole.OPERATOR
+    permissions: list[Permission] | None = None
 
     @field_validator("password")
     @classmethod
@@ -30,6 +65,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     full_name: str | None = None
     role: UserRole | None = None
+    permissions: list[Permission] | None = None
     is_active: bool | None = None
 
 
@@ -54,6 +90,7 @@ class UserRead(BaseModel):
     email: str
     full_name: str
     role: UserRole
+    permissions: list[Permission]
     is_active: bool
     tenant_id: uuid.UUID
     created_at: datetime

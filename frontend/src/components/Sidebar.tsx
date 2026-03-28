@@ -5,12 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUIStore } from "@/stores/uiStore";
+import { usePermissions } from "@/hooks/usePermissions";
+import type { Permission } from "@/types/api";
 import {
   LayoutDashboard,
   Boxes,
   Package,
   Truck,
   ShoppingCart,
+  Users,
+  Radio,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -23,21 +27,29 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const navItems = [
-  { href: "/dashboard",           label: "Lövhə",    icon: LayoutDashboard },
-  { href: "/dashboard/catalog",   label: "Kataloq",  icon: Package },
-  { href: "/dashboard/inventory", label: "Anbar",    icon: Boxes },
-  { href: "/dashboard/purchases", label: "Alışlar",  icon: Truck },
-  { href: "/dashboard/sales",     label: "Satış",    icon: ShoppingCart },
-  { href: "/dashboard/settings",  label: "Ayarlar",  icon: Settings },
+const navItems: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  permission?: Permission;
+}[] = [
+  { href: "/dashboard",              label: "Lövhə",      icon: LayoutDashboard },
+  { href: "/dashboard/catalog",      label: "Kataloq",    icon: Package,      permission: "inventory:read" },
+  { href: "/dashboard/inventory",    label: "Anbar",      icon: Boxes,        permission: "inventory:read" },
+  { href: "/dashboard/purchases",    label: "Alışlar",    icon: Truck,        permission: "orders:read" },
+  { href: "/dashboard/sales",        label: "Satış",      icon: ShoppingCart, permission: "orders:read" },
+  { href: "/dashboard/customers",    label: "Müştərilər", icon: Users,        permission: "customers:read" },
+  { href: "/dashboard/channels",     label: "Kanallar",   icon: Radio,        permission: "channels:manage" },
+  { href: "/dashboard/settings",     label: "Ayarlar",    icon: Settings,     permission: "settings:manage" },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const logout = useAuthStore((s: any) => s.logout);
-  const user = useAuthStore((s: any) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
+  const { can } = usePermissions();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -90,33 +102,35 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar relative z-10">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(item.href);
+        {navItems
+          .filter((item) => !item.permission || can(item.permission))
+          .map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname.startsWith(item.href);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={isSidebarCollapsed ? item.label : ""}
-              className={cn(
-                "group flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              )}
-            >
-              <Icon size={18} className={cn("shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "text-primary-foreground")} />
-              {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
-              {!isActive && (
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-              )}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={isSidebarCollapsed ? item.label : ""}
+                className={cn(
+                  "group flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                <Icon size={18} className={cn("shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "text-primary-foreground")} />
+                {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+                {!isActive && (
+                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                )}
+              </Link>
+            );
+          })}
       </nav>
 
       {/* Footer / User Profile */}
