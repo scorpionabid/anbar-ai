@@ -295,3 +295,132 @@ export interface Payment {
   updated_at: string;
   order: { id: string; order_number: string } | null;
 }
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+export type WeightUnit = "kg" | "g" | "lb" | "oz";
+export type DimensionUnit = "cm" | "m" | "in" | "ft";
+export type DateFormat = "DD.MM.YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD";
+
+export interface TenantSettings {
+  currency: string;
+  weight_unit: WeightUnit;
+  dimension_unit: DimensionUnit;
+  timezone: string;
+  tax_rate: number;
+  low_stock_threshold: number;
+  date_format: DateFormat;
+}
+
+export type TenantSettingsUpdate = Partial<TenantSettings>;
+
+// ── AI Provider Keys ──────────────────────────────────────────────────────────
+
+export type AIProvider = "openai" | "anthropic" | "gemini" | "azure_openai" | "mistral";
+
+export interface AIKeyRead {
+  provider: AIProvider;
+  key_preview: string;
+  model_override: string | null;
+  is_active: boolean;
+}
+
+export interface AIKeyUpsert {
+  provider: AIProvider;
+  api_key: string;
+  model_override?: string | null;
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+
+export type UserRole =
+  | "super_admin"
+  | "org_admin"
+  | "warehouse_manager"
+  | "sales_manager"
+  | "operator"
+  | "vendor";
+
+export interface UserRead {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  is_active: boolean;
+  tenant_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCreate {
+  email: string;
+  full_name: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface UserUpdate {
+  full_name?: string;
+  role?: UserRole;
+  is_active?: boolean;
+}
+
+export interface UserProfileUpdate {
+  full_name?: string;
+  email?: string;
+  current_password?: string;
+  new_password?: string;
+}
+
+// ── Notification Settings ─────────────────────────────────────────────────────
+
+export interface NotificationSettings {
+  email_low_stock: boolean;
+  email_new_order: boolean;
+  email_payment: boolean;
+  low_stock_email: string | null;
+}
+
+// ── Webhooks ──────────────────────────────────────────────────────────────────
+
+export type WebhookEvent =
+  | "order.created"
+  | "order.status_changed"
+  | "inventory.low_stock"
+  | "payment.received"
+  | "purchase_order.created";
+
+export interface WebhookRead {
+  id: string;
+  url: string;
+  events: WebhookEvent[];
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface WebhookCreate {
+  url: string;
+  events: WebhookEvent[];
+  secret?: string;
+  description?: string;
+}
+
+export interface WebhookUpdate {
+  url?: string;
+  events?: WebhookEvent[];
+  is_active?: boolean;
+  description?: string;
+}
+
+// ── Activity Log ──────────────────────────────────────────────────────────────
+
+export type ActivityType = "stock_movement" | "order" | "purchase_order" | "user";
+
+export interface ActivityItem {
+  id: string;
+  type: ActivityType;
+  description: string;
+  timestamp: string;
+  metadata: Record<string, unknown>;
+}

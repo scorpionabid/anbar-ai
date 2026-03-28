@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ShoppingCart, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Plus, ShoppingCart, ChevronDown, ChevronUp, Trash2, Download } from "lucide-react";
+import { downloadExport } from "@/lib/exportUtils";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useOrders } from "@/hooks/useOrders";
@@ -333,10 +334,16 @@ export default function OrdersPage() {
             {isLoading ? "Yüklənir..." : `${data?.total ?? 0} sifariş mövcuddur`}
           </p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Yeni Sifariş
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="gap-2" onClick={() => downloadExport("/api/v1/export/orders", "orders.csv").catch(console.error)}>
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Yeni Sifariş
+          </Button>
+        </div>
       </div>
 
       {/* Status filter tabs */}

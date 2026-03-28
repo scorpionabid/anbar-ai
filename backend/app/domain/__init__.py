@@ -10,6 +10,7 @@ from app.domain.payment import Payment, PaymentMethod, PaymentState
 from app.domain.supplier import Supplier
 from app.domain.purchase_order import PurchaseOrder, PurchaseOrderItem, PurchaseOrderStatus
 from app.domain.channel import Channel, ChannelListing, ChannelType
+from app.domain.settings import TenantSettings, AIProviderKey, NotificationSettings, WeightUnit, DimensionUnit, DateFormat, AIProvider
 
 __all__ = [
     "Tenant", "User", "UserRole",
@@ -22,4 +23,5 @@ __all__ = [
     "Supplier",
     "PurchaseOrder", "PurchaseOrderItem", "PurchaseOrderStatus",
     "Channel", "ChannelListing", "ChannelType",
+    "TenantSettings", "AIProviderKey", "NotificationSettings", "WeightUnit", "DimensionUnit", "DateFormat", "AIProvider",
 ]

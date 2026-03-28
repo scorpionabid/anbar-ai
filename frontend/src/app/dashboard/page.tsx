@@ -3,9 +3,10 @@
 import { useInventory } from "@/hooks/useInventory";
 import { useProducts } from "@/hooks/useProducts";
 import { useWarehouses } from "@/hooks/useWarehouses";
+import { useReorderSuggestions } from "@/hooks/useAI";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Boxes, Package, Warehouse, AlertTriangle, ArrowRight } from "lucide-react";
+import { Boxes, Package, Warehouse, AlertTriangle, ArrowRight, Bot, TrendingDown } from "lucide-react";
 import Link from "next/link";
 
 interface StatCardProps {
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const inventory = useInventory();
   const products = useProducts(1, 1);
   const warehouses = useWarehouses();
+  const reorderSuggestions = useReorderSuggestions();
 
   const totalAvailable = inventory.data?.reduce((sum, i) => sum + i.available, 0) ?? 0;
   const totalReserved = inventory.data?.reduce((sum, i) => sum + i.reserved_quantity, 0) ?? 0;
@@ -101,7 +103,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Low Stock Alerts */}
-        <Card glass className="lg:col-span-2">
+        <Card glass className="lg:col-span-2 lg:row-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Kritik Stok Səviyyəsi</CardTitle>
@@ -149,6 +151,49 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground font-medium">Bütün məhsullar kifayət qədər stokdadır.</p>
                   </div>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI Reorder Widget */}
+        <Card glass>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-primary" /> Reorder Tövsiyələri
+              </CardTitle>
+              <CardDescription>Yenidən sifariş lazım olan məhsullar</CardDescription>
+            </div>
+            <Link href="/dashboard/inventory" className="text-xs font-bold text-primary hover:underline flex items-center gap-1 group">
+              Hamısına bax <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {reorderSuggestions.isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(n => <div key={n} className="h-10 w-full bg-secondary/50 rounded-xl animate-pulse" />)}
+              </div>
+            ) : (reorderSuggestions.data?.length ?? 0) === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-muted-foreground font-medium">Bütün stoklar normaldır ✓</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(reorderSuggestions.data ?? []).slice(0, 5).map(s => (
+                  <div key={s.variant_id + s.warehouse_name} className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/40 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                        <TrendingDown className="h-4 w-4 text-destructive" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{s.variant_name}</p>
+                        <p className="text-xs text-muted-foreground">{s.warehouse_name} · {s.avg_daily_consumption}/gün</p>
+                      </div>
+                    </div>
+                    <Badge variant="warning">+{s.suggested_quantity}</Badge>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

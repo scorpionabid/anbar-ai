@@ -23,3 +23,26 @@ class UserRepository:
         await self.db.flush()
         await self.db.refresh(user)
         return user
+
+    async def list_by_tenant(self, tenant_id: uuid.UUID) -> list[User]:
+        result = await self.db.execute(
+            select(User)
+            .where(User.tenant_id == tenant_id)
+            .order_by(User.full_name)
+        )
+        return list(result.scalars().all())
+
+    async def get_by_id_and_tenant(
+        self, user_id: uuid.UUID, tenant_id: uuid.UUID
+    ) -> User | None:
+        result = await self.db.execute(
+            select(User).where(User.id == user_id, User.tenant_id == tenant_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def update(self, user: User, **kwargs) -> User:
+        for field, value in kwargs.items():
+            setattr(user, field, value)
+        await self.db.flush()
+        await self.db.refresh(user)
+        return user

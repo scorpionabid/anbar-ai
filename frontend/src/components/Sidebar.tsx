@@ -5,23 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUIStore } from "@/stores/uiStore";
-import { 
-  LayoutDashboard, 
-  Boxes, 
-  Package, 
-  Warehouse, 
-  LogOut, 
-  ChevronLeft, 
-  ChevronRight,
-  FolderTree,
+import {
+  LayoutDashboard,
+  Boxes,
+  Package,
   Truck,
-  History,
-  ClipboardList,
-  Users,
-  CreditCard,
-  Share2,
-  Factory,
-  Settings
+  ShoppingCart,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -30,50 +23,13 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const navGroups = [
-  {
-    title: "İcmal",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    ],
-  },
-  {
-    title: "Kataloq",
-    items: [
-      { href: "/dashboard/products", label: "Məhsullar", icon: Package },
-      { href: "/dashboard/categories", label: "Kateqoriyalar", icon: FolderTree },
-    ],
-  },
-  {
-    title: "Anbar & Logistika",
-    items: [
-      { href: "/dashboard/inventory", label: "Stok Səviyyələri", icon: Boxes },
-      { href: "/dashboard/warehouses", label: "Anbarlar", icon: Warehouse },
-      { href: "/dashboard/purchase-orders", label: "Alış Sifarişləri", icon: Truck },
-      { href: "/dashboard/inventory/movements", label: "Stok Hərəkətləri", icon: History },
-    ],
-  },
-  {
-    title: "Satış",
-    items: [
-      { href: "/dashboard/orders", label: "Sifarişlər", icon: ClipboardList },
-      { href: "/dashboard/customers", label: "Müştərilər", icon: Users },
-      { href: "/dashboard/payments", label: "Ödənişlər", icon: CreditCard },
-    ],
-  },
-  {
-    title: "Marketplace",
-    items: [
-      { href: "/dashboard/channels", label: "Satış Kanalları", icon: Share2 },
-      { href: "/dashboard/suppliers", label: "Təchizatçılar", icon: Factory },
-    ],
-  },
-  {
-    title: "Sistem",
-    items: [
-      { href: "/dashboard/settings", label: "Tənzimləmələr", icon: Settings },
-    ],
-  },
+const navItems = [
+  { href: "/dashboard",           label: "Lövhə",    icon: LayoutDashboard },
+  { href: "/dashboard/catalog",   label: "Kataloq",  icon: Package },
+  { href: "/dashboard/inventory", label: "Anbar",    icon: Boxes },
+  { href: "/dashboard/purchases", label: "Alışlar",  icon: Truck },
+  { href: "/dashboard/sales",     label: "Satış",    icon: ShoppingCart },
+  { href: "/dashboard/settings",  label: "Ayarlar",  icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -133,50 +89,34 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-6 space-y-8 overflow-y-auto custom-scrollbar relative z-10">
-        {navGroups.map((group, groupIdx) => (
-          <div key={groupIdx} className="space-y-3">
-            {!isSidebarCollapsed && (
-              <h3 className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] opacity-80">
-                {group.title}
-              </h3>
-            )}
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  item.href === "/dashboard"
-                    ? pathname === "/dashboard"
-                    : pathname.startsWith(item.href);
-                
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    title={isSidebarCollapsed ? item.label : ""}
-                    className={cn(
-                      "group flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden",
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    )}
-                  >
-                    <Icon size={18} className={cn("shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "text-primary-foreground")} />
-                    {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
-                    
-                    {/* Hover Glow */}
-                    {!isActive && (
-                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-            {groupIdx < navGroups.length - 1 && isSidebarCollapsed && (
-              <div className="mx-4 border-t border-border/50 my-4" />
-            )}
-          </div>
-        ))}
+      <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar relative z-10">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname.startsWith(item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={isSidebarCollapsed ? item.label : ""}
+              className={cn(
+                "group flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 relative overflow-hidden",
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
+              <Icon size={18} className={cn("shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "text-primary-foreground")} />
+              {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+              {!isActive && (
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* Footer / User Profile */}

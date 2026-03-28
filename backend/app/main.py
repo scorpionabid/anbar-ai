@@ -13,6 +13,12 @@ from app.api.v1.channels import router as channels_router
 from app.api.v1.purchase_orders import router as purchase_orders_router
 from app.api.v1.orders import router as orders_router
 from app.api.v1.payments import router as payments_router
+from app.api.v1.settings import router as settings_router
+from app.api.v1.users import router as users_router
+from app.api.v1.activity import router as activity_router
+from app.api.v1.export import router as export_router
+from app.api.v1.webhooks import router as webhooks_router
+from app.api.v1.ai import router as ai_router
 
 app = FastAPI(
     title="ANBAR — Inventory & Sales Core",
@@ -43,6 +49,12 @@ app.include_router(channels_router, prefix="/api/v1")
 app.include_router(purchase_orders_router, prefix="/api/v1")
 app.include_router(orders_router, prefix="/api/v1")
 app.include_router(payments_router, prefix="/api/v1")
+app.include_router(settings_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api/v1")
+app.include_router(activity_router, prefix="/api/v1")
+app.include_router(export_router, prefix="/api/v1")
+app.include_router(webhooks_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")
 
 
 @app.get("/")

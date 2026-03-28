@@ -8,7 +8,8 @@ from app.core.database import get_db
 from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.domain.user import User
 from app.repositories.user_repo import UserRepository
-from app.schemas.user import UserRead
+from app.schemas.user import UserProfileUpdate, UserRead
+from app.services.user_service import UserService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -52,3 +53,18 @@ async def login(
 async def get_me(current_user: User = Depends(get_current_user)):
     """JWT token vasitəsilə autentifikasiya olunmuş cari istifadəçinin profil məlumatlarını qaytarır."""
     return current_user
+
+
+@router.patch("/me", response_model=dict, summary="Öz profilini yenilə")
+async def update_me(
+    data: UserProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Cari istifadəçinin öz profil məlumatlarını yeniləyir.
+    Şifrə dəyişdirmək üçün current_password məcburidir.
+    """
+    service = UserService(UserRepository(db))
+    user = await service.update_my_profile(current_user.id, data)
+    return {"data": UserRead.model_validate(user), "message": "ok"}

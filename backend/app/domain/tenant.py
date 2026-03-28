@@ -15,3 +15,15 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     users: Mapped[list["User"]] = relationship(back_populates="tenant")
     warehouses: Mapped[list["Warehouse"]] = relationship(back_populates="tenant")
     products: Mapped[list["Product"]] = relationship(back_populates="tenant")
+    settings: Mapped["TenantSettings"] = relationship(
+        "TenantSettings", back_populates="tenant", uselist=False
+    )
+    ai_keys: Mapped[list["AIProviderKey"]] = relationship(
+        "AIProviderKey", back_populates="tenant"
+    )
+    notification_settings: Mapped["NotificationSettings"] = relationship(
+        "NotificationSettings", back_populates="tenant", uselist=False
+    )
+    webhooks: Mapped[list["Webhook"]] = relationship(
+        "Webhook", back_populates="tenant"
+    )

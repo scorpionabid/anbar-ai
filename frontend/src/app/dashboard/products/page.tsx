@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp, Search, Filter, Download, CheckCircle2, XCircle, Box } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronUp, Search, Filter, Download, CheckCircle2, XCircle, Box, Bot } from "lucide-react";
+import { downloadExport } from "@/lib/exportUtils";
+import { useGenerateDescription } from "@/hooks/useAI";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useProducts } from "@/hooks/useProducts";
@@ -205,6 +207,7 @@ function VariantTable({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProductsPage() {
+  const generateDescription = useGenerateDescription();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -445,29 +448,7 @@ export default function ProductsPage() {
   }
 
   function exportToCSV() {
-    const products = data?.data ?? [];
-    if (!products.length) return;
-    const headers = ["ID", "SKU", "Ad", "Kateqoriya", "Variant Sayı", "Status"];
-    const rows = products.map((p) => [
-      p.id,
-      p.sku,
-      p.name,
-      categories.find((c) => c.id === p.category_id)?.name ?? "—",
-      p.variants.length,
-      p.is_active ? "Aktiv" : "Deaktiv",
-    ]);
-
-    const csvContent =
-      "data:text/csv;charset=utf-8,\uFEFF" +
-      [headers, ...rows].map((e) => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `mehsullar_${new Date().getTime()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadExport("/api/v1/export/products", "products.csv").catch(console.error);
   }
 
   const isProductPending = createProduct.isPending || updateProduct.isPending;
@@ -708,8 +689,27 @@ export default function ProductsPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-foreground">Təsvir</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-foreground">Təsvir</label>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="gap-1.5 text-xs h-7"
+                disabled={!productForm.name || generateDescription.isPending}
+                onClick={async () => {
+                  const desc = await generateDescription.mutateAsync({ product_name: productForm.name }).catch(() => null);
+                  if (desc) setProductForm(f => ({ ...f, description: desc }));
+                }}
+              >
+                <Bot className="h-3.5 w-3.5" />
+                {generateDescription.isPending ? "Yaradılır..." : "AI ilə yaz"}
+              </Button>
+            </div>
             <Textarea placeholder="Məhsul haqqında ətraflı məlumat..." className="min-h-[100px]" value={productForm.description} onChange={(e) => setProductForm(f => ({ ...f, description: e.target.value }))} />
+            {generateDescription.isError && (
+              <p className="text-xs text-destructive">AI açarı konfiqurasiya edilməyib — Parametrlər → AI & İnteqrasiyalar</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-6">
