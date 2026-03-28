@@ -49,3 +49,17 @@ class WarehouseService:
         warehouse = await WarehouseRepository.update(db, warehouse, data)
         await db.commit()
         return WarehouseResponse.model_validate(warehouse)
+
+    @staticmethod
+    async def delete_warehouse(
+        db: AsyncSession,
+        warehouse_id: uuid.UUID,
+        tenant_id: uuid.UUID,
+    ) -> None:
+        warehouse = await WarehouseRepository.get_by_id(db, warehouse_id, tenant_id)
+        if not warehouse:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Warehouse not found"
+            )
+        await WarehouseRepository.soft_delete(db, warehouse)
+        await db.commit()

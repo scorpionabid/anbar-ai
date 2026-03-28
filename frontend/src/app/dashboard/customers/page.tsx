@@ -24,8 +24,8 @@ interface CustomerForm {
   name: string;
   email: string;
   phone: string;
-  company_name: string;
-  shipping_address: string;
+  tax_number: string;
+  address: string;
   notes: string;
   is_active: boolean;
 }
@@ -35,8 +35,8 @@ const emptyForm: CustomerForm = {
   name: "",
   email: "",
   phone: "",
-  company_name: "",
-  shipping_address: "",
+  tax_number: "",
+  address: "",
   notes: "",
   is_active: true,
 };
@@ -84,8 +84,8 @@ export default function CustomersPage() {
       name: c.name,
       email: c.email ?? "",
       phone: c.phone ?? "",
-      company_name: c.company_name ?? "",
-      shipping_address: c.shipping_address ?? "",
+      tax_number: c.tax_number ?? "",
+      address: c.address ?? "",
       notes: c.notes ?? "",
       is_active: c.is_active,
     });
@@ -114,11 +114,8 @@ export default function CustomersPage() {
       name: form.name.trim(),
       email: form.email.trim() || undefined,
       phone: form.phone.trim() || undefined,
-      company_name:
-        form.customer_type === "company"
-          ? form.company_name.trim() || undefined
-          : undefined,
-      shipping_address: form.shipping_address.trim() || undefined,
+      tax_number: form.tax_number.trim() || undefined,
+      address: form.address.trim() || undefined,
       notes: form.notes.trim() || undefined,
       is_active: form.is_active,
     };
@@ -172,7 +169,7 @@ export default function CustomersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
-                  {["Ad", "Tip", "Email", "Telefon", "Balans", "Status", "Əməliyyatlar"].map(
+                  {["Ad", "Tip", "Email", "Telefon", "Ünvan", "Status", "Əməliyyatlar"].map(
                     (h) => (
                       <th
                         key={h}
@@ -236,11 +233,8 @@ export default function CustomersPage() {
                     <td className="px-6 py-4 text-sm text-muted-foreground">
                       {c.phone ?? <span className="opacity-40">—</span>}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-foreground">
-                      {c.balance.toLocaleString("az-AZ", {
-                        style: "currency",
-                        currency: "AZN",
-                      })}
+                    <td className="px-6 py-4 text-sm text-muted-foreground truncate max-w-[160px]">
+                      {c.address ?? <span className="opacity-40">—</span>}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <Badge variant={c.is_active ? "success" : "secondary"}>
@@ -397,32 +391,31 @@ export default function CustomersPage() {
             </div>
           </div>
 
-          {form.customer_type === "company" && (
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
-                Şirkət adı
+                VÖEN / Vergi nömrəsi
               </label>
               <Input
-                placeholder="Şirkətin rəsmi adı"
-                value={form.company_name}
+                placeholder="1234567890"
+                value={form.tax_number}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, company_name: e.target.value }))
+                  setForm((f) => ({ ...f, tax_number: e.target.value }))
                 }
               />
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Çatdırılma ünvanı
-            </label>
-            <Textarea
-              placeholder="Şəhər, küçə, ev nömrəsi..."
-              value={form.shipping_address}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, shipping_address: e.target.value }))
-              }
-            />
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Ünvan
+              </label>
+              <Input
+                placeholder="Şəhər, küçə, ev nömrəsi"
+                value={form.address}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, address: e.target.value }))
+                }
+              />
+            </div>
           </div>
 
           <div>

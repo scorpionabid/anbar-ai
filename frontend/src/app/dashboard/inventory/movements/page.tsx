@@ -18,9 +18,6 @@ const MOVEMENT_TYPE_LABELS: Record<StockMovement["movement_type"], string> = {
   ADJUSTMENT: "Düzəliş",
   RESERVE: "Rezerv",
   RELEASE: "Buraxma",
-  TRANSFER_IN: "Transfer (Giriş)",
-  TRANSFER_OUT: "Transfer (Çıxış)",
-  INITIAL: "İlkin",
 };
 
 const MOVEMENT_TYPE_VARIANT: Record<
@@ -28,10 +25,7 @@ const MOVEMENT_TYPE_VARIANT: Record<
   BadgeProps["variant"]
 > = {
   IN: "success",
-  INITIAL: "success",
-  TRANSFER_IN: "success",
   OUT: "destructive",
-  TRANSFER_OUT: "destructive",
   RESERVE: "warning",
   RELEASE: "secondary",
   ADJUSTMENT: "default",
@@ -59,9 +53,6 @@ const ALL_MOVEMENT_TYPES: StockMovement["movement_type"][] = [
   "ADJUSTMENT",
   "RESERVE",
   "RELEASE",
-  "TRANSFER_IN",
-  "TRANSFER_OUT",
-  "INITIAL",
 ];
 
 export default function StockMovementsPage() {
@@ -223,13 +214,13 @@ export default function StockMovementsPage() {
                       })}
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-foreground">
-                      {mv.inventory.variant.name}
+                      {mv.inventory?.variant.name ?? "—"}
                     </td>
                     <td className="px-6 py-4 text-sm font-mono text-muted-foreground">
-                      {mv.inventory.variant.sku}
+                      {mv.inventory?.variant.sku ?? "—"}
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {mv.inventory.warehouse.name}
+                      {mv.inventory?.warehouse.name ?? "—"}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <Badge variant={MOVEMENT_TYPE_VARIANT[mv.movement_type]}>
@@ -247,7 +238,7 @@ export default function StockMovementsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground max-w-[180px] truncate">
-                      {mv.notes ?? <span className="opacity-40">—</span>}
+                      {mv.note ?? <span className="opacity-40">—</span>}
                     </td>
                   </tr>
                 ))}

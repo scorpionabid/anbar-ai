@@ -45,6 +45,10 @@ const CHANNEL_CONFIG: Record<ChannelType, { label: string; icon: any; color: str
   amazon: { label: "Amazon", icon: Globe, color: "text-yellow-400" },
   ebay: { label: "eBay", icon: Tag, color: "text-red-400" },
   custom: { label: "Digər", icon: Settings, color: "text-gray-400" },
+  store: { label: "Mağaza", icon: Store, color: "text-cyan-400" },
+  marketplace: { label: "Marketplace", icon: ShoppingBag, color: "text-indigo-400" },
+  wholesale: { label: "Topdan", icon: Globe, color: "text-teal-400" },
+  api: { label: "API", icon: Settings, color: "text-slate-400" },
 };
 
 const CHANNEL_TYPE_OPTIONS: { value: ChannelType; label: string }[] = Object.entries(CHANNEL_CONFIG).map(

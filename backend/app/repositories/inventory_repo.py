@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -131,3 +131,46 @@ class InventoryRepository:
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def list_all_movements(
+        db: AsyncSession,
+        tenant_id: uuid.UUID,
+        warehouse_id: Optional[uuid.UUID] = None,
+        movement_type: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[StockMovement], int]:
+        base_query = (
+            select(StockMovement)
+            .join(Inventory, StockMovement.inventory_id == Inventory.id)
+            .where(StockMovement.tenant_id == tenant_id)
+            .options(
+                selectinload(StockMovement.inventory).selectinload(Inventory.variant),
+                selectinload(StockMovement.inventory).selectinload(Inventory.warehouse),
+            )
+        )
+        if warehouse_id is not None:
+            base_query = base_query.where(Inventory.warehouse_id == warehouse_id)
+        if movement_type is not None:
+            base_query = base_query.where(StockMovement.movement_type == movement_type)
+
+        count_query = (
+            select(func.count())
+            .select_from(StockMovement)
+            .join(Inventory, StockMovement.inventory_id == Inventory.id)
+            .where(StockMovement.tenant_id == tenant_id)
+        )
+        if warehouse_id is not None:
+            count_query = count_query.where(Inventory.warehouse_id == warehouse_id)
+        if movement_type is not None:
+            count_query = count_query.where(StockMovement.movement_type == movement_type)
+
+        total_result = await db.execute(count_query)
+        total = total_result.scalar_one()
+
+        data_result = await db.execute(
+            base_query.order_by(StockMovement.created_at.desc()).offset(skip).limit(limit)
+        )
+        movements = list(data_result.scalars().all())
+        return movements, total

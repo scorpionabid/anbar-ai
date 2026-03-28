@@ -1,6 +1,7 @@
 import uuid
+from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_roles
@@ -10,6 +11,26 @@ from app.schemas.payment import PaymentCreate, PaymentListResponse, PaymentRespo
 from app.services.payment_service import PaymentService
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
+
+@router.get("", response_model=PaymentListResponse, summary="Bütün ödənişlərin siyahısı")
+async def list_all_payments(
+    order_id: Optional[uuid.UUID] = Query(None, description="Filtr: Sifariş ID-si"),
+    payment_method: Optional[str] = Query(None, description="Filtr: ödəniş üsulu"),
+    page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
+    per_page: int = Query(20, ge=1, le=100, description="Səhifə başına nəticə sayı"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Bütün tenant-ın ödənişlərini qaytarır. Sifariş və ödəniş üsuluna görə filtrasiya mümkündür."""
+    return await PaymentService.list_all_payments(
+        db,
+        tenant_id=current_user.tenant_id,
+        order_id=order_id,
+        payment_method=payment_method,
+        page=page,
+        per_page=per_page,
+    )
 
 
 @router.get("/order/{order_id}", response_model=list[PaymentResponse])

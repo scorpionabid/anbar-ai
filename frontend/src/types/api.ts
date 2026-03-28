@@ -74,9 +74,7 @@ export interface Category {
   tenant_id: string;
   parent_id: string | null;
   name: string;
-  slug: string;
   description: string | null;
-  sort_order: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -98,13 +96,9 @@ export interface Customer {
   name: string;
   email: string | null;
   phone: string | null;
-  company_name: string | null;
-  tax_id: string | null;
-  shipping_address: string | null;
-  billing_address: string | null;
+  tax_number: string | null;
+  address: string | null;
   notes: string | null;
-  credit_limit: number;
-  balance: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -132,26 +126,18 @@ export interface StockMovement {
   id: string;
   tenant_id: string;
   inventory_id: string;
-  movement_type:
-    | "IN"
-    | "OUT"
-    | "ADJUSTMENT"
-    | "RESERVE"
-    | "RELEASE"
-    | "TRANSFER_IN"
-    | "TRANSFER_OUT"
-    | "INITIAL";
+  movement_type: "IN" | "OUT" | "ADJUSTMENT" | "RESERVE" | "RELEASE";
   quantity: number;
   reference_type: string | null;
   reference_id: string | null;
-  notes: string | null;
-  created_by: string | null;
+  note: string | null;
+  user_id: string | null;
   created_at: string;
   inventory: {
     id: string;
     variant: VariantSummary;
     warehouse: WarehouseSummary;
-  };
+  } | null;
 }
 
 // StockMovementListResponse
@@ -228,7 +214,8 @@ export interface Order {
 export type PurchaseOrderStatus =
   | "draft"
   | "sent"
-  | "partially_received"
+  | "confirmed"
+  | "partial_received"
   | "received"
   | "cancelled";
 
@@ -236,31 +223,29 @@ export interface PurchaseOrderItem {
   id: string;
   purchase_order_id: string;
   variant_id: string;
-  quantity_ordered: number;
-  quantity_received: number;
+  ordered_quantity: number;
+  received_quantity: number;
   unit_cost: number;
   line_total: number;
-  variant: VariantSummary;
+  variant?: VariantSummary;
 }
 
 export interface PurchaseOrder {
   id: string;
   tenant_id: string;
   po_number: string;
-  supplier_id: string;
+  supplier_id: string | null;
   warehouse_id: string;
   status: PurchaseOrderStatus;
-  expected_date: string | null;
-  received_date: string | null;
-  subtotal: number;
+  expected_delivery_date: string | null;
+  received_at: string | null;
   total_amount: number;
-  currency: string;
   notes: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  supplier: { id: string; name: string };
-  warehouse: WarehouseSummary;
+  supplier: { id: string; name: string } | null;
+  warehouse: WarehouseSummary | null;
   items: PurchaseOrderItem[];
 }
 
@@ -272,7 +257,11 @@ export type ChannelType =
   | "trendyol"
   | "amazon"
   | "ebay"
-  | "custom";
+  | "custom"
+  | "store"
+  | "marketplace"
+  | "wholesale"
+  | "api";
 
 export interface Channel {
   id: string;
@@ -286,7 +275,7 @@ export interface Channel {
 }
 
 // Payment
-export type PaymentMethod = "cash" | "bank_transfer" | "card" | "online" | "other";
+export type PaymentMethod = "cash" | "bank_transfer" | "card" | "online" | "marketplace";
 export type PaymentState = "pending" | "completed" | "failed" | "refunded";
 
 export interface Payment {
@@ -294,13 +283,15 @@ export interface Payment {
   tenant_id: string;
   order_id: string;
   payment_method: PaymentMethod;
+  status: PaymentState;
   state: PaymentState;
   amount: number;
   currency: string;
+  external_payment_id: string | null;
   reference: string | null;
   notes: string | null;
   paid_at: string | null;
   created_at: string;
   updated_at: string;
-  order: { id: string; order_number: string };
+  order: { id: string; order_number: string } | null;
 }

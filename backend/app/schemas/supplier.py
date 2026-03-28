@@ -15,6 +15,7 @@ class SupplierCreate(BaseModel):
     address: Optional[str] = None
     tax_number: Optional[str] = None
     payment_terms_days: Optional[int] = None
+    notes: Optional[str] = None
     is_active: bool = True
 
 
@@ -28,6 +29,7 @@ class SupplierUpdate(BaseModel):
     address: Optional[str] = None
     tax_number: Optional[str] = None
     payment_terms_days: Optional[int] = None
+    notes: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -45,6 +47,7 @@ class SupplierResponse(BaseModel):
     address: Optional[str]
     tax_number: Optional[str]
     payment_terms_days: Optional[int]
+    notes: Optional[str]
     is_active: bool
     created_at: datetime
     updated_at: datetime

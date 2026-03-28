@@ -45,6 +45,7 @@ class Payment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[PaymentState] = mapped_column(
         Enum(PaymentState, name="payment_state"), nullable=False, default=PaymentState.PENDING
     )
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="AZN")
     external_payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True)  # bank/marketplace ref nömrəsi
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -4,9 +4,9 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_roles
 from app.core.database import get_db
-from app.domain.user import User
+from app.domain.user import User, UserRole
 from app.schemas.warehouse import WarehouseCreate, WarehouseResponse, WarehouseUpdate
 from app.services.warehouse_service import WarehouseService
 
@@ -51,3 +51,14 @@ async def update_warehouse(
     return await WarehouseService.update_warehouse(
         db, warehouse_id, current_user.tenant_id, data
     )
+
+
+@router.delete("/{warehouse_id}", summary="Anbarı deaktiv et (soft delete)")
+async def delete_warehouse(
+    warehouse_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ORG_ADMIN)),
+):
+    """Anbarı silmir — `is_active = False` edir. Mövcud inventory qeydləri saxlanılır."""
+    await WarehouseService.delete_warehouse(db, warehouse_id, current_user.tenant_id)
+    return {"message": "Anbar uğurla deaktiv edildi"}

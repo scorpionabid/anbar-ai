@@ -7,12 +7,9 @@ export interface CreateCustomerPayload {
   name: string;
   email?: string;
   phone?: string;
-  company_name?: string;
-  tax_id?: string;
-  shipping_address?: string;
-  billing_address?: string;
+  tax_number?: string;
+  address?: string;
   notes?: string;
-  credit_limit?: number;
   is_active?: boolean;
 }
 

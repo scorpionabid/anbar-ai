@@ -34,7 +34,11 @@ class PurchaseOrderRepository:
             query.order_by(PurchaseOrder.created_at.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
-            .options(selectinload(PurchaseOrder.items))
+            .options(
+                selectinload(PurchaseOrder.items),
+                selectinload(PurchaseOrder.supplier),
+                selectinload(PurchaseOrder.warehouse),
+            )
         )
         result = await db.execute(query)
         return list(result.scalars().all()), total
@@ -51,7 +55,11 @@ class PurchaseOrderRepository:
                 PurchaseOrder.id == po_id,
                 PurchaseOrder.tenant_id == tenant_id,
             )
-            .options(selectinload(PurchaseOrder.items))
+            .options(
+                selectinload(PurchaseOrder.items),
+                selectinload(PurchaseOrder.supplier),
+                selectinload(PurchaseOrder.warehouse),
+            )
         )
         return result.scalar_one_or_none()
 

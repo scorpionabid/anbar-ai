@@ -48,3 +48,10 @@ class WarehouseRepository:
         await db.flush()
         await db.refresh(warehouse)
         return warehouse
+
+    @staticmethod
+    async def soft_delete(db: AsyncSession, warehouse: Warehouse) -> Warehouse:
+        warehouse.is_active = False
+        await db.flush()
+        await db.refresh(warehouse)
+        return warehouse

@@ -4,6 +4,7 @@ from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.domain.payment import Payment, PaymentState
 from app.schemas.payment import PaymentCreate, PaymentUpdate
@@ -23,6 +24,7 @@ class PaymentRepository:
                 Payment.tenant_id == tenant_id,
             )
             .order_by(Payment.created_at.desc())
+            .options(selectinload(Payment.order))
         )
         return list(result.scalars().all())
 
@@ -33,10 +35,12 @@ class PaymentRepository:
         tenant_id: uuid.UUID,
     ) -> Optional[Payment]:
         result = await db.execute(
-            select(Payment).where(
+            select(Payment)
+            .where(
                 Payment.id == payment_id,
                 Payment.tenant_id == tenant_id,
             )
+            .options(selectinload(Payment.order))
         )
         return result.scalar_one_or_none()
 
@@ -75,6 +79,37 @@ class PaymentRepository:
         await db.flush()
         await db.refresh(payment)
         return payment
+
+    @staticmethod
+    async def list_all(
+        db: AsyncSession,
+        tenant_id: uuid.UUID,
+        order_id: Optional[uuid.UUID] = None,
+        payment_method: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[Payment], int]:
+        base_filters = [Payment.tenant_id == tenant_id]
+        if order_id is not None:
+            base_filters.append(Payment.order_id == order_id)
+        if payment_method is not None:
+            base_filters.append(Payment.payment_method == payment_method)
+
+        count_result = await db.execute(
+            select(func.count()).select_from(Payment).where(*base_filters)
+        )
+        total = count_result.scalar_one()
+
+        data_result = await db.execute(
+            select(Payment)
+            .where(*base_filters)
+            .order_by(Payment.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .options(selectinload(Payment.order))
+        )
+        payments = list(data_result.scalars().all())
+        return payments, total
 
     @staticmethod
     async def get_total_paid_for_order(

@@ -29,7 +29,8 @@ function cn(...inputs: ClassValue[]) {
 const PO_STATUS_LABELS: Record<PurchaseOrderStatus, string> = {
   draft: "Qaralama",
   sent: "Göndərildi",
-  partially_received: "Qismən alındı",
+  confirmed: "Təsdiqləndi",
+  partial_received: "Qismən alındı",
   received: "Alındı",
   cancelled: "Ləğv edildi",
 };
@@ -40,16 +41,19 @@ function poStatusBadge(status: PurchaseOrderStatus): BadgeVariant {
   switch (status) {
     case "draft": return "secondary";
     case "sent": return "default";
-    case "partially_received": return "warning";
+    case "confirmed": return "default";
+    case "partial_received": return "warning";
     case "received": return "success";
     case "cancelled": return "destructive";
+    default: return "secondary";
   }
 }
 
 const ALL_PO_STATUSES: PurchaseOrderStatus[] = [
   "draft",
   "sent",
-  "partially_received",
+  "confirmed",
+  "partial_received",
   "received",
   "cancelled",
 ];
@@ -58,12 +62,12 @@ const ALL_PO_STATUSES: PurchaseOrderStatus[] = [
 
 interface POLineItem {
   variant_id: string;
-  quantity_ordered: string;
+  ordered_quantity: string;
   unit_cost: string;
 }
 
 function emptyPOLineItem(): POLineItem {
-  return { variant_id: "", quantity_ordered: "1", unit_cost: "0" };
+  return { variant_id: "", ordered_quantity: "1", unit_cost: "0" };
 }
 
 // ── Skeleton ─────────────────────────────────────────────────────────────────
@@ -216,7 +220,7 @@ export default function PurchaseOrdersPage() {
   }
 
   function lineTotal(item: POLineItem): number {
-    const qty = parseFloat(item.quantity_ordered) || 0;
+    const qty = parseFloat(item.ordered_quantity) || 0;
     const cost = parseFloat(item.unit_cost) || 0;
     return qty * cost;
   }
@@ -251,11 +255,11 @@ export default function PurchaseOrdersPage() {
     const payload = {
       supplier_id: supplierId,
       warehouse_id: warehouseId,
-      expected_date: expectedDate || undefined,
+      expected_delivery_date: expectedDate || undefined,
       notes: notes.trim() || undefined,
       items: lineItems.map((item) => ({
         variant_id: item.variant_id.trim(),
-        quantity_ordered: parseFloat(item.quantity_ordered) || 1,
+        ordered_quantity: parseFloat(item.ordered_quantity) || 1,
         unit_cost: parseFloat(item.unit_cost) || 0,
       })),
     };
@@ -372,10 +376,10 @@ export default function PurchaseOrdersPage() {
                           </button>
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-foreground">
-                          {po.supplier.name}
+                          {po.supplier?.name ?? "—"}
                         </td>
                         <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {po.warehouse.name}
+                          {po.warehouse?.name ?? "—"}
                         </td>
                         <td className="px-6 py-4">
                           <Badge variant={poStatusBadge(po.status)}>
@@ -385,12 +389,12 @@ export default function PurchaseOrdersPage() {
                         <td className="px-6 py-4 text-sm font-medium text-foreground">
                           {po.total_amount.toLocaleString("az-AZ", {
                             style: "currency",
-                            currency: po.currency || "AZN",
+                            currency: "AZN",
                           })}
                         </td>
                         <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {po.expected_date
-                            ? new Date(po.expected_date).toLocaleDateString("az-AZ")
+                          {po.expected_delivery_date
+                            ? new Date(po.expected_delivery_date).toLocaleDateString("az-AZ")
                             : "—"}
                         </td>
                         <td className="px-6 py-4">
@@ -448,16 +452,16 @@ export default function PurchaseOrdersPage() {
                                           className="border-b border-border/20 last:border-0"
                                         >
                                           <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                                            {item.variant.sku}
+                                            {item.variant?.sku ?? "—"}
                                           </td>
                                           <td className="px-4 py-2.5 font-medium text-foreground">
-                                            {item.variant.name}
+                                            {item.variant?.name ?? "—"}
                                           </td>
                                           <td className="px-4 py-2.5 text-foreground">
-                                            {item.quantity_ordered}
+                                            {item.ordered_quantity}
                                           </td>
                                           <td className="px-4 py-2.5 text-foreground">
-                                            {item.quantity_received}
+                                            {item.received_quantity}
                                           </td>
                                           <td className="px-4 py-2.5 text-foreground">
                                             {item.unit_cost.toLocaleString("az-AZ", {
@@ -633,9 +637,9 @@ export default function PurchaseOrdersPage() {
                       type="number"
                       min="1"
                       step="1"
-                      value={item.quantity_ordered}
+                      value={item.ordered_quantity}
                       onChange={(e) =>
-                        updateLineItem(index, "quantity_ordered", e.target.value)
+                        updateLineItem(index, "ordered_quantity", e.target.value)
                       }
                     />
                   </div>

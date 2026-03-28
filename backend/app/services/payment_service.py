@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -16,6 +17,26 @@ from app.schemas.payment import (
 
 
 class PaymentService:
+    @staticmethod
+    async def list_all_payments(
+        db: AsyncSession,
+        tenant_id: uuid.UUID,
+        order_id: Optional[uuid.UUID] = None,
+        payment_method: Optional[str] = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict:
+        skip = (page - 1) * per_page
+        payments, total = await PaymentRepository.list_all(
+            db, tenant_id, order_id, payment_method, skip, per_page
+        )
+        return {
+            "data": [PaymentResponse.model_validate(p) for p in payments],
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+        }
+
     @staticmethod
     async def list_payments_for_order(
         db: AsyncSession,

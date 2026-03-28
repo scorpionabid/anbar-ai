@@ -15,7 +15,7 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   bank_transfer: "Bank köçürməsi",
   card: "Kart",
   online: "Onlayn",
-  other: "Digər",
+  marketplace: "Marketplace",
 };
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
@@ -129,7 +129,7 @@ export default function PaymentsPage() {
                     className="border-b border-border/30 hover:bg-secondary/30 transition-colors last:border-0"
                   >
                     <td className="px-6 py-4 text-sm font-semibold text-primary">
-                      {payment.order.order_number}
+                      {payment.order?.order_number ?? "—"}
                     </td>
                     <td className="px-6 py-4 text-sm text-foreground">
                       {PAYMENT_METHOD_LABELS[payment.payment_method]}

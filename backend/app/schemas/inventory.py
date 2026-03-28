@@ -42,6 +42,13 @@ class InventoryResponse(BaseModel):
 
 # ── StockMovement ─────────────────────────────────────────────────────────────
 
+class InventorySummary(BaseModel):
+    id: uuid.UUID
+    variant: VariantSummary
+    warehouse: WarehouseSummary
+    model_config = ConfigDict(from_attributes=True)
+
+
 class MovementResponse(BaseModel):
     id: uuid.UUID
     inventory_id: uuid.UUID
@@ -52,6 +59,7 @@ class MovementResponse(BaseModel):
     user_id: Optional[uuid.UUID]
     note: Optional[str]
     created_at: datetime
+    inventory: Optional[InventorySummary] = None
     model_config = ConfigDict(from_attributes=True)
 
 

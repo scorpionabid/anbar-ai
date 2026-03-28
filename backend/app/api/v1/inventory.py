@@ -29,6 +29,26 @@ async def list_inventory(
     return await InventoryService.list_inventory(db, current_user.tenant_id, warehouse_id)
 
 
+@router.get("/movements", summary="Bütün stok hərəkətlərinin siyahısı")
+async def list_all_movements(
+    warehouse_id: Optional[uuid.UUID] = Query(None, description="Filtr: Anbar ID-si"),
+    movement_type: Optional[str] = Query(None, description="Filtr: hərəkət növü (IN, OUT, RESERVE, RELEASE, ADJUSTMENT)"),
+    page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
+    per_page: int = Query(20, ge=1, le=100, description="Səhifə başına nəticə sayı"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Bütün tenant-ın stok hərəkətlərini qaytarır. Anbar və hərəkət növünə görə filtrasiya mümkündür."""
+    return await InventoryService.list_all_movements(
+        db,
+        tenant_id=current_user.tenant_id,
+        warehouse_id=warehouse_id,
+        movement_type=movement_type,
+        page=page,
+        per_page=per_page,
+    )
+
+
 @router.get("/{inventory_id}", response_model=InventoryResponse, summary="Spesifik anbar qalığı")
 async def get_inventory(
     inventory_id: uuid.UUID,

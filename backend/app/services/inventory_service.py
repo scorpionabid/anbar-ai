@@ -36,6 +36,26 @@ class InventoryService:
         return InventoryResponse.model_validate(inv)
 
     @staticmethod
+    async def list_all_movements(
+        db: AsyncSession,
+        tenant_id: uuid.UUID,
+        warehouse_id: Optional[uuid.UUID] = None,
+        movement_type: Optional[str] = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict:
+        skip = (page - 1) * per_page
+        movements, total = await InventoryRepository.list_all_movements(
+            db, tenant_id, warehouse_id, movement_type, skip, per_page
+        )
+        return {
+            "data": [MovementResponse.model_validate(m) for m in movements],
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+        }
+
+    @staticmethod
     async def list_movements(
         db: AsyncSession,
         inventory_id: uuid.UUID,

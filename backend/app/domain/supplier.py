@@ -24,6 +24,7 @@ class Supplier(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     tax_number: Mapped[str | None] = mapped_column(String(50), nullable=True)     # VÖEN
     payment_terms_days: Mapped[int | None] = mapped_column(Integer, nullable=True)  # ödəniş müddəti (gün)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(back_populates="supplier")

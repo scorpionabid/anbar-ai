@@ -5,6 +5,20 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
+# ── Brief nested types ─────────────────────────────────────────────────────────
+
+class SupplierBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+
+
+class WarehouseBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+
+
 # ── PurchaseOrderItemCreate ────────────────────────────────────────────────────
 
 class PurchaseOrderItemCreate(BaseModel):
@@ -100,6 +114,8 @@ class PurchaseOrderResponse(BaseModel):
     notes: Optional[str]
     created_by: Optional[uuid.UUID]
     received_at: Optional[datetime]
+    supplier: Optional[SupplierBrief] = None
+    warehouse: Optional[WarehouseBrief] = None
     items: List[PurchaseOrderItemResponse]
     created_at: datetime
     updated_at: datetime

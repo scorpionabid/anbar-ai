@@ -4,14 +4,14 @@ import type { PurchaseOrder, PurchaseOrderStatus } from "@/types/api";
 
 export interface POItemPayload {
   variant_id: string;
-  quantity_ordered: number;
+  ordered_quantity: number;
   unit_cost: number;
 }
 
 export interface PurchaseOrderCreatePayload {
   supplier_id: string;
   warehouse_id: string;
-  expected_date?: string;
+  expected_delivery_date?: string;
   notes?: string;
   items: POItemPayload[];
 }
