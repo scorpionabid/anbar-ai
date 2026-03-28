@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api";
-import type { Channel, ChannelType } from "@/types/api";
+import type { Channel, ChannelType, PaginatedResponse } from "@/types/api";
 
 export function useChannels(params?: { search?: string; is_active?: boolean }) {
   return useQuery<Channel[]>({
     queryKey: ["channels", params],
     queryFn: async () => {
       console.log("[useChannels] Fetching with params:", params);
-      const { data } = await apiClient.get<Channel[]>("/channels", { params });
-      return data;
+      const { data } = await apiClient.get<PaginatedResponse<Channel>>("/channels", { params });
+      return data.data;
     },
   });
 }
