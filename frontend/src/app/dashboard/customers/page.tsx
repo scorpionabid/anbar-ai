@@ -16,7 +16,11 @@ import { Input } from "@/components/ui/Input";
 // Extracted Components
 import { CustomerStats } from "./components/CustomerStats";
 import { CustomerRow } from "./components/CustomerRow";
-import { CustomerModal } from "./components/CustomerModal";
+import dynamic from "next/dynamic";
+const CustomerModal = dynamic(() => import("./components/CustomerModal").then(m => m.CustomerModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 import { type CustomerForm, emptyForm } from "./components/types";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 

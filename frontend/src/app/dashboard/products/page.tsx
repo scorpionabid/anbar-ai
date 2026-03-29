@@ -20,8 +20,15 @@ import { Input } from "@/components/ui/Input";
 // Extracted Components
 import { ProductRow } from "./components/ProductRow";
 import { ProductStats } from "./components/ProductStats";
-import { ProductModal } from "./components/ProductModal";
-import { VariantModal } from "./components/VariantModal";
+import dynamic from "next/dynamic";
+const ProductModal = dynamic(() => import("./components/ProductModal").then(m => m.ProductModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
+const VariantModal = dynamic(() => import("./components/VariantModal").then(m => m.VariantModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 import { 
   type ProductForm, 
   type VariantForm, 

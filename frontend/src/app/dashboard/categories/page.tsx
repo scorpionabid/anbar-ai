@@ -17,8 +17,15 @@ import { Select } from "@/components/ui/Select";
 // Extracted Components
 import { CategoryStats } from "./components/CategoryStats";
 import { CategoryRow } from "./components/CategoryRow";
-import { CategoryModal } from "./components/CategoryModal";
-import { DeleteCategoryModal } from "./components/DeleteCategoryModal";
+import dynamic from "next/dynamic";
+const CategoryModal = dynamic(() => import("./components/CategoryModal").then(m => m.CategoryModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
+const DeleteCategoryModal = dynamic(() => import("./components/DeleteCategoryModal").then(m => m.DeleteCategoryModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 import { type CategoryForm, emptyForm } from "./components/types";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 

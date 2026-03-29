@@ -11,8 +11,15 @@ import { Button } from "@/components/ui/Button";
 
 // Extracted Components
 import { STATUS_TABS } from "./components/constants";
-import { StatusModal } from "./components/StatusModal";
-import { CreateOrderModal } from "./components/CreateOrderModal";
+import dynamic from "next/dynamic";
+const StatusModal = dynamic(() => import("./components/StatusModal").then(m => m.StatusModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
+const CreateOrderModal = dynamic(() => import("./components/CreateOrderModal").then(m => m.CreateOrderModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 import { OrderRow } from "./components/OrderRow";
 import { OrderStats } from "./components/OrderStats";
 import type { Order, OrderStatus } from "@/types/api";

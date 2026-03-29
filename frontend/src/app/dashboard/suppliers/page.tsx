@@ -17,7 +17,11 @@ import { Input } from "@/components/ui/Input";
 // Extracted Components
 import { SupplierStats } from "./components/SupplierStats";
 import { SupplierRow } from "./components/SupplierRow";
-import { SupplierModal } from "./components/SupplierModal";
+import dynamic from "next/dynamic";
+const SupplierModal = dynamic(() => import("./components/SupplierModal").then(m => m.SupplierModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 import { type SupplierForm, emptyForm } from "./components/types";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 

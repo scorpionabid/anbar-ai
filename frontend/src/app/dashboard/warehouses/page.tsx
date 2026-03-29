@@ -13,7 +13,11 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { Modal } from "@/components/ui/Modal";
+import dynamic from "next/dynamic";
+const Modal = dynamic(() => import("@/components/ui/Modal").then(m => m.Modal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 
 // ─── form state ──────────────────────────────────────────────────────────────
 

@@ -14,7 +14,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { Modal } from "@/components/ui/Modal";
+import dynamic from "next/dynamic";
+const Modal = dynamic(() => import("@/components/ui/Modal").then(m => m.Modal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 import { Tabs } from "@/components/ui/Tabs";
 import MovementsPage from "@/app/dashboard/inventory/movements/page";
 import WarehousesPage from "@/app/dashboard/warehouses/page";

@@ -9,8 +9,15 @@ import { Button } from "@/components/ui/Button";
 // Extracted Components
 import { PurchaseOrderStats } from "./components/PurchaseOrderStats";
 import { PurchaseOrderRow } from "./components/PurchaseOrderRow";
-import { CreatePurchaseOrderModal } from "./components/CreatePurchaseOrderModal";
-import { POStatusModal } from "./components/POStatusModal";
+import dynamic from "next/dynamic";
+const CreatePurchaseOrderModal = dynamic(() => import("./components/CreatePurchaseOrderModal").then(m => m.CreatePurchaseOrderModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
+const POStatusModal = dynamic(() => import("./components/POStatusModal").then(m => m.POStatusModal), { 
+  ssr: false,
+  loading: () => <p className="p-4 text-sm text-muted-foreground animate-pulse">Modal yüklənir...</p> 
+});
 import type { PurchaseOrder } from "@/types/api";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
