@@ -29,17 +29,7 @@ import {
   emptyVariantForm 
 } from "./components/types";
 
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border/50">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <td key={i} className="px-6 py-5">
-          <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
-        </td>
-      ))}
-    </tr>
-  );
-}
+import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
 export default function ProductsPage() {
   const [page, setPage] = useState(1);
@@ -83,7 +73,7 @@ export default function ProductsPage() {
       sku: p.sku,
       description: p.description || "",
       category_id: p.category_id || "",
-      unit_of_measure: p.unit_of_measure,
+      unit_of_measure: "",
       is_active: p.is_active,
     });
     setProductError(null);
@@ -123,8 +113,8 @@ export default function ProductsPage() {
       sku: v.sku,
       barcode: v.barcode || "",
       price: String(v.price),
-      cost_price: String(v.cost_price),
-      is_active: v.is_active,
+      cost_price: "",
+      is_active: true,
     });
     setVariantError(null);
     setVariantModalOpen(true);

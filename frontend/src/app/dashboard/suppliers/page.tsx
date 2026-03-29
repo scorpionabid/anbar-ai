@@ -19,18 +19,7 @@ import { SupplierStats } from "./components/SupplierStats";
 import { SupplierRow } from "./components/SupplierRow";
 import { SupplierModal } from "./components/SupplierModal";
 import { type SupplierForm, emptyForm } from "./components/types";
-
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border/50">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <td key={i} className="px-6 py-5">
-          <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
-        </td>
-      ))}
-    </tr>
-  );
-}
+import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
 export default function SuppliersPage() {
   const [page, setPage] = useState(1);

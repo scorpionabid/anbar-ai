@@ -18,18 +18,7 @@ import { CustomerStats } from "./components/CustomerStats";
 import { CustomerRow } from "./components/CustomerRow";
 import { CustomerModal } from "./components/CustomerModal";
 import { type CustomerForm, emptyForm } from "./components/types";
-
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border/50">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <td key={i} className="px-6 py-5">
-          <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
-        </td>
-      ))}
-    </tr>
-  );
-}
+import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
 export default function CustomersPage() {
   const [page, setPage] = useState(1);

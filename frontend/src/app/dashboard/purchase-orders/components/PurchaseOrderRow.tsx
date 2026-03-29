@@ -4,14 +4,9 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 import { getPOStatusBadge, PO_STATUS_LABELS, NEXT_PO_STATUSES } from "./constants";
 import type { PurchaseOrder } from "@/types/api";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 interface PurchaseOrderRowProps {
   po: PurchaseOrder;
@@ -34,7 +29,7 @@ export function PurchaseOrderRow({ po, onStatusClick }: PurchaseOrderRowProps) {
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center gap-2 text-sm font-bold text-primary hover:underline"
           >
-            {po.order_number}
+            {po.po_number}
             {isExpanded ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
@@ -43,10 +38,10 @@ export function PurchaseOrderRow({ po, onStatusClick }: PurchaseOrderRowProps) {
           </button>
         </td>
         <td className="px-6 py-4 text-sm font-medium text-foreground">
-          {po.supplier.name}
+          {po.supplier?.name ?? "—"}
         </td>
         <td className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
-          {po.warehouse.name}
+          {po.warehouse?.name ?? "—"}
         </td>
         <td className="px-6 py-4">
           <Badge variant={getPOStatusBadge(po.status)}>
@@ -106,10 +101,10 @@ export function PurchaseOrderRow({ po, onStatusClick }: PurchaseOrderRowProps) {
                       {po.items.map((item) => (
                         <tr key={item.id} className="hover:bg-secondary/10 transition-colors">
                           <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                            {item.variant.sku}
+                            {item.variant?.sku ?? "—"}
                           </td>
                           <td className="px-4 py-3 font-medium text-foreground">
-                            {item.variant.name}
+                            {item.variant?.name ?? "—"}
                           </td>
                           <td className="px-4 py-3 font-bold text-foreground">
                             {item.ordered_quantity}
@@ -132,7 +127,7 @@ export function PurchaseOrderRow({ po, onStatusClick }: PurchaseOrderRowProps) {
                 </div>
               )}
 
-              {(po.notes || po.delivery_date) && (
+              {(po.notes || po.expected_delivery_date) && (
                 <div className="mt-5 grid grid-cols-2 gap-4">
                   {po.notes && (
                     <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
@@ -142,11 +137,11 @@ export function PurchaseOrderRow({ po, onStatusClick }: PurchaseOrderRowProps) {
                        <p className="text-xs text-muted-foreground">{po.notes}</p>
                     </div>
                   )}
-                  {po.delivery_date && (
+                  {po.expected_delivery_date && (
                     <div className="p-4 bg-secondary/10 rounded-2xl border border-border/20">
                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Gözlənilən Tarix</p>
                        <p className="text-xs font-bold text-foreground">
-                         {new Date(po.delivery_date).toLocaleDateString("az-AZ")}
+                         {new Date(po.expected_delivery_date!).toLocaleDateString("az-AZ")}
                        </p>
                     </div>
                   )}

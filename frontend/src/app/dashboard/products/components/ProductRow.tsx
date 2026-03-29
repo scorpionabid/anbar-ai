@@ -4,13 +4,8 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, Package, Box, Filter, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 import type { Product, ProductVariant } from "@/types/api";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 // ── Variant Table ────────────────────────────────────────────────────────────
 
@@ -60,7 +55,7 @@ function VariantTable({
           <table className="w-full text-sm">
             <thead className="bg-secondary/20">
               <tr className="border-b border-border/40">
-                {["Ad / SKU", "Barkod", "Qiymət", "Maya dəyəri", "Status", "Əməllər"].map((h) => (
+                {["Ad / SKU", "Barkod", "Qiymət", "Atributlar", "Əməllər"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                     {h}
                   </th>
@@ -82,13 +77,8 @@ function VariantTable({
                   <td className="px-4 py-3 font-bold text-foreground">
                     {v.price.toLocaleString("az-AZ", { style: "currency", currency: "AZN" })}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {v.cost_price.toLocaleString("az-AZ", { style: "currency", currency: "AZN" })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={v.is_active ? "success" : "secondary"} className="h-5 px-1.5 text-[10px]">
-                       {v.is_active ? "Aktiv" : "Deaktiv"}
-                    </Badge>
+                  <td className="px-4 py-3 text-xs text-muted-foreground italic">
+                    {v.attributes || "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {deletingVariantId === v.id ? (
@@ -198,12 +188,12 @@ export function ProductRow({
           </div>
         </td>
         <td className="px-6 py-4">
-           <Badge variant="secondary" className="px-2 py-0.5 text-[10px] font-bold border-border/50">
-             {product.category?.name ?? "K-sız"}
-           </Badge>
+            <Badge variant="secondary" className="px-2 py-0.5 text-[10px] font-bold border-border/50">
+              {product.category_id ? "Kateqoriyalı" : "K-sız"}
+            </Badge>
         </td>
         <td className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          {product.unit_of_measure}
+          {product.description ? product.description.slice(0, 30) : "—"}
         </td>
         <td className="px-6 py-4">
           <Badge variant={product.is_active ? "success" : "secondary"}>

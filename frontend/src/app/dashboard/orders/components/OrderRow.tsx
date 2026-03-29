@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useCancelOrder } from "@/hooks/useOrderMutations";
+import { cn } from "@/lib/utils";
 import { 
   ORDER_STATUS_LABELS, 
   PAYMENT_STATUS_LABELS, 
@@ -15,10 +14,6 @@ import {
   NEXT_STATUSES
 } from "./constants";
 import type { Order } from "@/types/api";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 interface OrderRowProps {
   order: Order;

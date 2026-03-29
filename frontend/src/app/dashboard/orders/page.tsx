@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Plus, Download, ShoppingCart } from "lucide-react";
 import { downloadExport } from "@/lib/exportUtils";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
+import { SkeletonRow } from "@/components/ui/SkeletonRow";
 import { useOrders } from "@/hooks/useOrders";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,22 +16,6 @@ import { CreateOrderModal } from "./components/CreateOrderModal";
 import { OrderRow } from "./components/OrderRow";
 import { OrderStats } from "./components/OrderStats";
 import type { Order, OrderStatus } from "@/types/api";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border/50">
-      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-        <td key={i} className="px-6 py-4">
-          <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
-        </td>
-      ))}
-    </tr>
-  );
-}
 
 export default function OrdersPage() {
   const [page, setPage] = useState(1);

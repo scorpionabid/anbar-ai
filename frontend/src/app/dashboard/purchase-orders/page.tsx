@@ -12,18 +12,7 @@ import { PurchaseOrderRow } from "./components/PurchaseOrderRow";
 import { CreatePurchaseOrderModal } from "./components/CreatePurchaseOrderModal";
 import { POStatusModal } from "./components/POStatusModal";
 import type { PurchaseOrder } from "@/types/api";
-
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border/50">
-      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <td key={i} className="px-6 py-5">
-          <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
-        </td>
-      ))}
-    </tr>
-  );
-}
+import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
 export default function PurchaseOrdersPage() {
   const [page, setPage] = useState(1);

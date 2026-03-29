@@ -38,17 +38,7 @@ function paymentStateBadge(state: PaymentState): BadgeVariant {
 
 // ── Skeleton ─────────────────────────────────────────────────────────────────
 
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border/50">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <td key={i} className="px-6 py-4">
-          <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
-        </td>
-      ))}
-    </tr>
-  );
-}
+import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 

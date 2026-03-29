@@ -35,12 +35,7 @@ function StatCard({ title, value, description, icon: Icon, color }: StatCardProp
   );
 }
 
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const inventory = useInventory();
