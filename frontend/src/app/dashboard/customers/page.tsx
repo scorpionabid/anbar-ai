@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Search, Filter, Download, Users, SearchX } from "lucide-react";
 import { useCustomers } from "@/hooks/useCustomers";
 import {
   useCreateCustomer,
@@ -11,43 +11,19 @@ import {
 import type { Customer } from "@/types/api";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Textarea } from "@/components/ui/Textarea";
-import { Modal } from "@/components/ui/Modal";
 
-// ─── form state ───────────────────────────────────────────────────────────────
-
-interface CustomerForm {
-  customer_type: "individual" | "company";
-  name: string;
-  email: string;
-  phone: string;
-  tax_number: string;
-  address: string;
-  notes: string;
-  is_active: boolean;
-}
-
-const emptyForm: CustomerForm = {
-  customer_type: "individual",
-  name: "",
-  email: "",
-  phone: "",
-  tax_number: "",
-  address: "",
-  notes: "",
-  is_active: true,
-};
-
-// ─── skeleton row ─────────────────────────────────────────────────────────────
+// Extracted Components
+import { CustomerStats } from "./components/CustomerStats";
+import { CustomerRow } from "./components/CustomerRow";
+import { CustomerModal } from "./components/CustomerModal";
+import { type CustomerForm, emptyForm } from "./components/types";
 
 function SkeletonRow() {
   return (
     <tr className="border-b border-border/50">
-      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <td key={i} className="px-6 py-4">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <td key={i} className="px-6 py-5">
           <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
         </td>
       ))}
@@ -55,11 +31,13 @@ function SkeletonRow() {
   );
 }
 
-// ─── page ─────────────────────────────────────────────────────────────────────
-
 export default function CustomersPage() {
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "individual" | "company">("all");
+
   const { data, isLoading, isError } = useCustomers(page, 20);
+
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
@@ -93,95 +71,104 @@ export default function CustomersPage() {
     setModalOpen(true);
   }
 
-  function closeModal() {
-    setModalOpen(false);
-    setEditTarget(null);
-    setForm(emptyForm);
-    setFormError(null);
-  }
-
-  async function handleSubmit(e: { preventDefault: () => void }) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-
     if (!form.name.trim()) {
       setFormError("Müştəri adı mütləqdir.");
       return;
     }
-
-    const payload = {
-      customer_type: form.customer_type,
-      name: form.name.trim(),
-      email: form.email.trim() || undefined,
-      phone: form.phone.trim() || undefined,
-      tax_number: form.tax_number.trim() || undefined,
-      address: form.address.trim() || undefined,
-      notes: form.notes.trim() || undefined,
-      is_active: form.is_active,
-    };
-
+    const payload = { ...form, name: form.name.trim() };
     try {
       if (editTarget) {
         await updateCustomer.mutateAsync({ id: editTarget.id, payload });
       } else {
         await createCustomer.mutateAsync(payload);
       }
-      closeModal();
+      setModalOpen(false);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Xəta baş verdi.");
     }
   }
 
-  async function handleDelete(id: string) {
-    try {
-      await deleteCustomer.mutateAsync(id);
-      setDeletingId(null);
-    } catch {
-      // silently fail
-    }
-  }
-
-  const isPending = createCustomer.isPending || updateCustomer.isPending;
   const totalPages = data ? Math.ceil(data.total / 20) : 1;
 
+  // Filter local data (backend filtering preferred, but hooks might not support type filter yet)
+  const filteredData = (data?.data ?? []).filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    const matchesType = typeFilter === "all" || c.customer_type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
   return (
-    <div className="p-8 space-y-8">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
+    <div className="p-8 space-y-8 animate-in fade-in duration-700">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            Müştərilər
+          <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
+             Müştərilər (CRM)
           </h1>
-          <p className="text-muted-foreground font-medium mt-1">
-            {isLoading ? "Yüklənir..." : `${data?.total ?? 0} müştəri mövcuddur`}
+          <p className="text-sm font-medium text-muted-foreground mt-1 tracking-tight">
+            {isLoading ? "Yüklənir..." : `${data?.total ?? 0} müştəri qeydə alınıb`}
           </p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Yeni Müştəri
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={openCreate} className="gap-2 shadow-lg shadow-primary/20 rounded-2xl h-11 px-8 font-black">
+            <Plus className="h-4 w-4" />
+            Yeni Müştəri
+          </Button>
+        </div>
       </div>
 
-      {/* Table */}
-      <Card glass>
+      {/* KPI Stats Section */}
+      {!isLoading && !isError && data && (
+        <CustomerStats customers={data.data} totalCount={data.total} />
+      )}
+
+      {/* Filters Section */}
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-secondary/20 p-4 rounded-3xl border border-border/30">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Ad və ya email üzrə axtarış..."
+            className="pl-10 h-11 rounded-2xl bg-background border-border/40 transition-all focus:ring-2 focus:ring-primary/20"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2 p-1.5 bg-background rounded-2xl border border-border/20 shadow-inner">
+           {[
+             { id: "all", label: "Hamısı" },
+             { id: "company", label: "Şirkət" },
+             { id: "individual", label: "Fərdi" }
+           ].map((f) => (
+             <button
+               key={f.id}
+               onClick={() => setTypeFilter(f.id as any)}
+               className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${typeFilter === f.id ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary"}`}
+             >
+               {f.label}
+             </button>
+           ))}
+        </div>
+      </div>
+
+      {/* Table Section */}
+      <Card glass className="overflow-hidden border-border/40 shadow-xl shadow-primary/5">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/50">
-                  {["Ad", "Tip", "Email", "Telefon", "Ünvan", "Status", "Əməliyyatlar"].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
+              <thead className="bg-secondary/10">
+                <tr className="border-b border-border/50 text-left uppercase tracking-widest border-t-0">
+                  {["Müştəri", "Tip", "VÖEN / Vergi", "Ünvan", "Status", "Əməllər"].map((h) => (
+                    <th key={h} className="px-6 py-4 text-[10px] font-black text-muted-foreground tracking-widest truncate">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border/20">
                 {isLoading && (
                   <>
                     <SkeletonRow />
@@ -191,101 +178,30 @@ export default function CustomersPage() {
                 )}
                 {isError && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-12 text-center text-sm text-destructive"
-                    >
-                      Müştərilər yüklənərkən xəta baş verdi.
+                    <td colSpan={6} className="px-6 py-20 text-center text-sm text-destructive font-black">
+                       Məlumatlar yüklənərkən xəta baş verdi.
                     </td>
                   </tr>
                 )}
-                {!isLoading && !isError && data?.data.length === 0 && (
+                {!isLoading && !isError && filteredData.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-12 text-center text-sm text-muted-foreground"
-                    >
-                      <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      Hələ heç bir müştəri əlavə edilməyib.
+                    <td colSpan={6} className="px-6 py-24 text-center">
+                       <SearchX className="h-16 w-16 mx-auto mb-4 opacity-5 text-primary" />
+                       <p className="text-sm font-bold text-muted-foreground">Müştəri tapılmadı.</p>
+                       <p className="text-[10px] text-muted-foreground mt-1 opacity-70 italic tracking-tight">Kriteriyaları dəyişərək yenidən yoxlayın.</p>
                     </td>
                   </tr>
                 )}
-                {(data?.data ?? []).map((c) => (
-                  <tr
+                {filteredData.map((c) => (
+                  <CustomerRow
                     key={c.id}
-                    className="border-b border-border/30 hover:bg-secondary/30 transition-colors last:border-0"
-                  >
-                    <td className="px-6 py-4 text-sm font-semibold text-foreground">
-                      {c.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <Badge
-                        variant={
-                          c.customer_type === "company" ? "default" : "secondary"
-                        }
-                      >
-                        {c.customer_type === "company" ? "Şirkət" : "Fərdi"}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {c.email ?? <span className="opacity-40">—</span>}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {c.phone ?? <span className="opacity-40">—</span>}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground truncate max-w-[160px]">
-                      {c.address ?? <span className="opacity-40">—</span>}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <Badge variant={c.is_active ? "success" : "secondary"}>
-                        {c.is_active ? "Aktiv" : "Deaktiv"}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {deletingId === c.id ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            Əminsiniz?
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(c.id)}
-                            disabled={deleteCustomer.isPending}
-                          >
-                            Bəli
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setDeletingId(null)}
-                          >
-                            Xeyr
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => openEdit(c)}
-                            aria-label="Düzəlt"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeletingId(c.id)}
-                            aria-label="Sil"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
+                    customer={c}
+                    onEdit={openEdit}
+                    onDelete={(id) => deleteCustomer.mutate(id)}
+                    deletingId={deletingId}
+                    setDeletingId={setDeletingId}
+                    deletePending={deleteCustomer.isPending}
+                  />
                 ))}
               </tbody>
             </table>
@@ -293,176 +209,30 @@ export default function CustomersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
-              <p className="text-sm text-muted-foreground">
-                Səhifə {page} / {totalPages}
+            <div className="flex items-center justify-between px-6 py-5 border-t border-border/50 bg-secondary/5">
+              <p className="text-xs font-bold text-muted-foreground opacity-70">
+                Səhifə <span className="text-foreground">{page}</span> / {totalPages}
               </p>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Əvvəlki
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  Növbəti
-                </Button>
+                <Button size="sm" variant="outline" onClick={() => setPage(page - 1)} disabled={page === 1} className="h-9 px-4 rounded-xl">Əvvəlki</Button>
+                <Button size="sm" variant="outline" onClick={() => setPage(page + 1)} disabled={page === totalPages} className="h-9 px-4 rounded-xl">Növbəti</Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Create / Edit Modal */}
-      <Modal
+      {/* Modals */}
+      <CustomerModal
         open={modalOpen}
-        onClose={closeModal}
-        title={editTarget ? "Müştərini Düzəlt" : "Yeni Müştəri"}
-        description={
-          editTarget
-            ? "Müştəri məlumatlarını yeniləyin."
-            : "Yeni müştəri yaratmaq üçün məlumatları doldurun."
-        }
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Müştəri tipi
-              </label>
-              <Select
-                value={form.customer_type}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    customer_type: e.target.value as "individual" | "company",
-                  }))
-                }
-              >
-                <option value="individual">Fərdi</option>
-                <option value="company">Şirkət</option>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Ad <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="Müştəri adı"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Email
-              </label>
-              <Input
-                type="email"
-                placeholder="email@example.com"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Telefon
-              </label>
-              <Input
-                type="tel"
-                placeholder="+994 50 000 00 00"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                VÖEN / Vergi nömrəsi
-              </label>
-              <Input
-                placeholder="1234567890"
-                value={form.tax_number}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, tax_number: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Ünvan
-              </label>
-              <Input
-                placeholder="Şəhər, küçə, ev nömrəsi"
-                value={form.address}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, address: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Qeydlər
-            </label>
-            <Textarea
-              placeholder="Əlavə qeydlər..."
-              value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="cust-is-active"
-              checked={form.is_active}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, is_active: e.target.checked }))
-              }
-              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-            />
-            <label
-              htmlFor="cust-is-active"
-              className="text-sm font-medium text-foreground cursor-pointer"
-            >
-              Aktiv
-            </label>
-          </div>
-
-          {formError && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              {formError}
-            </p>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={closeModal}>
-              Ləğv et
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Saxlanılır..." : editTarget ? "Yenilə" : "Yarat"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onClose={() => setModalOpen(false)}
+        target={editTarget}
+        form={form}
+        setForm={setForm}
+        onSubmit={handleSubmit}
+        isPending={createCustomer.isPending || updateCustomer.isPending}
+        error={formError}
+      />
     </div>
   );
 }
