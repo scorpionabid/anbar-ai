@@ -9,6 +9,7 @@ interface User {
   role: string;
   tenant_id: string;
   permissions: string[];
+  last_login: string | null;
 }
 
 export interface AuthState {
@@ -20,8 +21,11 @@ export interface AuthState {
   setTokens: (access: string, refresh: string) => void;
   setUser: (user: User | null) => void;
   fetchUser: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
+
+// Cookie max-age backend config ilə sinxron — ACCESS_TOKEN_EXPIRE_MINUTES = 30 → 1800s
+const COOKIE_MAX_AGE = 1800;
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -37,7 +41,7 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem("access_token", access);
           localStorage.setItem("refresh_token", refresh);
           // Middleware cookie oxuduğu üçün cookie-yə də yazırıq (SameSite=Strict)
-          document.cookie = `access_token=${access}; path=/; SameSite=Strict; max-age=1800`;
+          document.cookie = `access_token=${access}; path=/; SameSite=Strict; max-age=${COOKIE_MAX_AGE}`;
         }
       },
       setUser: (user) => set({ user }),
@@ -47,10 +51,22 @@ export const useAuthStore = create<AuthState>()(
           set({ user: data });
         } catch (error) {
           console.error("Failed to fetch user:", error);
-          get().logout();
+          await get().logout();
         }
       },
-      logout: () => {
+      logout: async () => {
+        // Backend-dən refresh token-i revoke et
+        const refreshToken = get().refreshToken;
+        if (refreshToken) {
+          try {
+            await apiClient.post("/auth/logout", {
+              refresh_token: refreshToken,
+            });
+          } catch {
+            // Logout request uğursuz olsa da, client-side təmizlik davam edir
+          }
+        }
+
         set({ accessToken: null, refreshToken: null, user: null });
         if (typeof window !== "undefined") {
           localStorage.removeItem("access_token");
@@ -71,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
         hydratedState.setHasHydrated(true);
         // localStorage-dan yüklənən token varsa cookie-ni bərpa et (middleware üçün)
         if (hydratedState.accessToken && typeof window !== "undefined") {
-          document.cookie = `access_token=${hydratedState.accessToken}; path=/; SameSite=Strict; max-age=1800`;
+          document.cookie = `access_token=${hydratedState.accessToken}; path=/; SameSite=Strict; max-age=${COOKIE_MAX_AGE}`;
         }
       },
     }

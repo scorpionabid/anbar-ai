@@ -1,7 +1,8 @@
 import enum
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Enum, ForeignKey, String, JSON
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, JSON
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -66,4 +67,18 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 
+    # Login tracking & brute-force protection
+    last_login: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    failed_login_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+
     tenant: Mapped["Tenant"] = relationship(back_populates="users")
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )

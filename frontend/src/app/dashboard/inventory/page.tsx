@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { SlidersHorizontal, PackageSearch, Download, Bot, ChevronDown } from "lucide-react";
 import { downloadExport } from "@/lib/exportUtils";
@@ -260,7 +262,15 @@ const TABS = [
   { id: "anbarlar",   label: "Anbarlar" },
 ];
 
-export default function InventoryPage() {
+export default function InventoryPageWrapper() {
+  return (
+    <ProtectedRoute permission="inventory:read">
+      <InventoryPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function InventoryPageContent() {
   const [activeTab, setActiveTab] = useState("stok");
 
   return (

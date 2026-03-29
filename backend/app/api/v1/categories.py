@@ -4,9 +4,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User
+from app.domain.user import Permission, User
 from app.schemas.product import CategoryCreate, CategoryUpdate, CategoryListResponse, CategoryResponse
 from app.services.product_service import CategoryService
 
@@ -20,7 +20,7 @@ async def list_categories(
     page: int = Query(1, ge=1),
     per_page: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     """
     Bütün məhsul kateqoriyalarının siyahısını qaytarır.
@@ -35,7 +35,7 @@ async def list_categories(
 async def create_category(
     data: CategoryCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     """Yeni məhsul kateqoriyası yaradır. İyerarxiya üçün `parent_id` istifadə oluna bilər."""
     return await CategoryService.create_category(db, current_user.tenant_id, data)
@@ -45,7 +45,7 @@ async def create_category(
 async def get_category(
     category_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     from fastapi import HTTPException, status
     from app.repositories.product_repo import CategoryRepository
@@ -61,7 +61,7 @@ async def update_category(
     category_id: uuid.UUID,
     data: CategoryUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     """Mövcud kateqoriyanın məlumatlarını yeniləyir."""
     return await CategoryService.update_category(db, category_id, current_user.tenant_id, data)
@@ -71,7 +71,7 @@ async def update_category(
 async def delete_category(
     category_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_MANAGE)),
 ):
     """
     Kateqoriyanı silir.

@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState, useEffect } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Tabs } from "@/components/ui/Tabs";
@@ -24,7 +26,15 @@ const ALL_TABS: { id: string; label: string; permission?: Permission }[] = [
   { id: "webhooks",   label: "Webhooks",      permission: "settings:manage" },
 ];
 
-export default function SettingsPage() {
+export default function SettingsPageWrapper() {
+  return (
+    <ProtectedRoute permission="settings:manage">
+      <SettingsPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function SettingsPageContent() {
   const { can } = usePermissions();
   const visibleTabs = ALL_TABS.filter((t) => !t.permission || can(t.permission));
   const [activeTab, setActiveTab] = useState("profil");

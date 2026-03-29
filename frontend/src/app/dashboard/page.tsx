@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useInventory } from "@/hooks/useInventory";
 import { useProducts } from "@/hooks/useProducts";
 import { useWarehouses } from "@/hooks/useWarehouses";
@@ -37,7 +39,15 @@ function StatCard({ title, value, description, icon: Icon, color }: StatCardProp
 
 import { cn } from "@/lib/utils";
 
-export default function DashboardPage() {
+export default function DashboardPageWrapper() {
+  return (
+    <ProtectedRoute permission="reports:view">
+      <DashboardPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function DashboardPageContent() {
   const inventory = useInventory();
   const products = useProducts(1, 1);
   const warehouses = useWarehouses();

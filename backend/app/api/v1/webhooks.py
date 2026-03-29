@@ -3,9 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User
+from app.domain.user import Permission, User
 from app.schemas.webhook import WebhookCreate, WebhookRead, WebhookUpdate
 from app.services.webhook_service import WebhookService
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 @router.get("", response_model=list[WebhookRead], summary="Webhook siyahısı")
 async def list_webhooks(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Tenant-a məxsus bütün webhook-ları qaytarır."""
     return await WebhookService.list_webhooks(db, current_user.tenant_id)
@@ -29,7 +29,7 @@ async def list_webhooks(
 async def create_webhook(
     data: WebhookCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Yeni webhook endpoint yaradır. URL mütləq https:// ilə başlamalıdır."""
     webhook = await WebhookService.create_webhook(db, current_user.tenant_id, data)
@@ -41,7 +41,7 @@ async def update_webhook(
     webhook_id: uuid.UUID,
     data: WebhookUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Mövcud webhook-u yeniləyir. Yalnız göndərilən sahələr dəyişdirilir."""
     webhook = await WebhookService.update_webhook(
@@ -54,7 +54,7 @@ async def update_webhook(
 async def delete_webhook(
     webhook_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Webhook-u silir."""
     await WebhookService.delete_webhook(db, webhook_id, current_user.tenant_id)

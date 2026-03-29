@@ -1,5 +1,6 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useState } from "react";
 import { CreditCard } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
@@ -42,7 +43,15 @@ import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function PaymentsPage() {
+export default function PaymentsPageWrapper() {
+  return (
+    <ProtectedRoute permission="orders:read">
+      <PaymentsPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function PaymentsPageContent() {
   const [page, setPage] = useState(1);
   const { data, isLoading, isError } = usePayments(page, 20);
 

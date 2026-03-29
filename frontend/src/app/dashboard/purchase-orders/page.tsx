@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Plus, ShoppingBag } from "lucide-react";
 import { usePurchaseOrders } from "@/hooks/usePurchaseOrders";
@@ -21,7 +23,15 @@ const POStatusModal = dynamic(() => import("./components/POStatusModal").then(m 
 import type { PurchaseOrder } from "@/types/api";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
-export default function PurchaseOrdersPage() {
+export default function PurchaseOrdersPageWrapper() {
+  return (
+    <ProtectedRoute permission="inventory:read">
+      <PurchaseOrdersPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function PurchaseOrdersPageContent() {
   const [page, setPage] = useState(1);
   const { data, isLoading, isError } = usePurchaseOrders(page, 20);
 

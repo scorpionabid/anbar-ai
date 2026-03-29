@@ -4,10 +4,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_roles
+from app.api.deps import require_permissions
 from app.core.database import get_db
 from app.domain.purchase_order import PurchaseOrderStatus
-from app.domain.user import User, UserRole
+from app.domain.user import Permission, User
 from app.schemas.purchase_order import (
     PurchaseOrderCreate,
     PurchaseOrderListResponse,
@@ -27,7 +27,7 @@ async def list_purchase_orders(
     status: Optional[PurchaseOrderStatus] = Query(None),
     supplier_id: Optional[uuid.UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     return await PurchaseOrderService.list_purchase_orders(
         db,
@@ -43,9 +43,7 @@ async def list_purchase_orders(
 async def create_purchase_order(
     data: PurchaseOrderCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     return await PurchaseOrderService.create_purchase_order(
         db, current_user.tenant_id, current_user.id, data
@@ -56,7 +54,7 @@ async def create_purchase_order(
 async def get_purchase_order(
     po_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     return await PurchaseOrderService.get_purchase_order(
         db, po_id, current_user.tenant_id
@@ -68,9 +66,7 @@ async def update_purchase_order(
     po_id: uuid.UUID,
     data: PurchaseOrderUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     return await PurchaseOrderService.update_purchase_order(
         db, po_id, current_user.tenant_id, data
@@ -81,9 +77,7 @@ async def update_purchase_order(
 async def cancel_purchase_order(
     po_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN)
-    ),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_MANAGE)),
 ):
     await PurchaseOrderService.cancel_purchase_order(
         db, po_id, current_user.tenant_id
@@ -95,9 +89,7 @@ async def receive_goods(
     po_id: uuid.UUID,
     data: PurchaseOrderReceive,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     return await PurchaseOrderService.receive_goods(
         db, po_id, current_user.tenant_id, current_user.id, data

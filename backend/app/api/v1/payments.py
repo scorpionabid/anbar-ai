@@ -4,9 +4,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_roles
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User, UserRole
+from app.domain.user import Permission, User
 from app.schemas.payment import PaymentCreate, PaymentListResponse, PaymentResponse
 from app.services.payment_service import PaymentService
 
@@ -20,7 +20,7 @@ async def list_all_payments(
     page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
     per_page: int = Query(20, ge=1, le=100, description="Səhifə başına nəticə sayı"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_READ)),
 ):
     """Bütün tenant-ın ödənişlərini qaytarır. Sifariş və ödəniş üsuluna görə filtrasiya mümkündür."""
     return await PaymentService.list_all_payments(
@@ -37,7 +37,7 @@ async def list_all_payments(
 async def list_payments_for_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_READ)),
 ):
     return await PaymentService.list_payments_for_order(
         db, order_id, current_user.tenant_id
@@ -48,7 +48,7 @@ async def list_payments_for_order(
 async def get_payment(
     payment_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_READ)),
 ):
     return await PaymentService.get_payment(db, payment_id, current_user.tenant_id)
 
@@ -57,9 +57,7 @@ async def get_payment(
 async def create_payment(
     data: PaymentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.SALES_MANAGER, UserRole.ORG_ADMIN)
-    ),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_WRITE)),
 ):
     return await PaymentService.create_payment(db, current_user.tenant_id, data)
 
@@ -68,6 +66,6 @@ async def create_payment(
 async def refund_payment(
     payment_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ORG_ADMIN)),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_MANAGE)),
 ):
     return await PaymentService.refund_payment(db, payment_id, current_user.tenant_id)

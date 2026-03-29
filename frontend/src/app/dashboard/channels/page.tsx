@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState, useMemo } from "react";
 import { 
   Plus, 
@@ -75,7 +77,15 @@ const emptyForm: ChannelForm = {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ChannelsPage() {
+export default function ChannelsPageWrapper() {
+  return (
+    <ProtectedRoute permission="channels:manage">
+      <ChannelsPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function ChannelsPageContent() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 

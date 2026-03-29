@@ -4,9 +4,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_roles
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User, UserRole
+from app.domain.user import Permission, User
 from app.schemas.channel import (
     ChannelCreate,
     ChannelListResponse,
@@ -31,7 +31,7 @@ async def list_channels(
     is_active: Optional[bool] = Query(None),
     search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     return await ChannelService.list_channels(
         db, current_user.tenant_id, page, per_page, is_active, search
@@ -42,7 +42,7 @@ async def list_channels(
 async def create_channel(
     data: ChannelCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ORG_ADMIN)),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     return await ChannelService.create_channel(db, current_user.tenant_id, data)
 
@@ -51,7 +51,7 @@ async def create_channel(
 async def get_channel(
     channel_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     return await ChannelService.get_channel(db, channel_id, current_user.tenant_id)
 
@@ -61,7 +61,7 @@ async def update_channel(
     channel_id: uuid.UUID,
     data: ChannelUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ORG_ADMIN)),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     return await ChannelService.update_channel(
         db, channel_id, current_user.tenant_id, data
@@ -72,7 +72,7 @@ async def update_channel(
 async def delete_channel(
     channel_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ORG_ADMIN)),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     await ChannelService.delete_channel(db, channel_id, current_user.tenant_id)
 
@@ -85,7 +85,7 @@ async def list_listings(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     return await ChannelListingService.list_listings(
         db, channel_id, current_user.tenant_id, page, per_page
@@ -97,9 +97,7 @@ async def create_listing(
     channel_id: uuid.UUID,
     data: ChannelListingCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     # Ensure path param matches body — override body channel_id with path param
     data_with_channel = data.model_copy(update={"channel_id": channel_id})
@@ -114,9 +112,7 @@ async def update_listing(
     listing_id: uuid.UUID,
     data: ChannelListingUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     return await ChannelListingService.update_listing(
         db, listing_id, current_user.tenant_id, data
@@ -128,9 +124,7 @@ async def delete_listing(
     channel_id: uuid.UUID,
     listing_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.WAREHOUSE_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.CHANNELS_MANAGE)),
 ):
     await ChannelListingService.delete_listing(
         db, listing_id, current_user.tenant_id

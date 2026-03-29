@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Plus, Download, ShoppingCart } from "lucide-react";
 import { downloadExport } from "@/lib/exportUtils";
@@ -24,7 +26,15 @@ import { OrderRow } from "./components/OrderRow";
 import { OrderStats } from "./components/OrderStats";
 import type { Order, OrderStatus } from "@/types/api";
 
-export default function OrdersPage() {
+export default function OrdersPageWrapper() {
+  return (
+    <ProtectedRoute permission="orders:read">
+      <OrdersPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function OrdersPageContent() {
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState<OrderStatus | "all">("all");
   const statusFilter = activeTab === "all" ? undefined : activeTab;

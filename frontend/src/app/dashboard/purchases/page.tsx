@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Tabs } from "@/components/ui/Tabs";
 import PurchaseOrdersPage from "@/app/dashboard/purchase-orders/page";
@@ -10,7 +12,15 @@ const TABS = [
   { id: "suppliers", label: "Təchizatçılar" },
 ];
 
-export default function PurchasesPage() {
+export default function PurchasesPageWrapper() {
+  return (
+    <ProtectedRoute permission="inventory:read">
+      <PurchasesPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function PurchasesPageContent() {
   const [activeTab, setActiveTab] = useState("orders");
 
   const handleTabChange = (tab: string) => {

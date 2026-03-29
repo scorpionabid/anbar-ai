@@ -4,9 +4,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User
+from app.domain.user import Permission, User
 from app.schemas.product import (
     ProductCreate,
     ProductListResponse,
@@ -29,7 +29,7 @@ async def list_products(
     search: Optional[str] = Query(None, description="Ad, SKU və ya təsvir üzrə axtarış"),
     is_active: Optional[bool] = Query(None, description="Aktivlik statusuna görə filtr"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     """Bütün məhsulların siyahısını pagination ilə qaytarır. Axtarış və filtrasiya mümkündür."""
     return await ProductService.list_products(
@@ -41,7 +41,7 @@ async def list_products(
 async def create_product(
     data: ProductCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     """
     Yeni məhsul və onun ilkin variantlarını yaradır.
@@ -54,7 +54,7 @@ async def create_product(
 async def get_product(
     product_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     return await ProductService.get_product(db, product_id, current_user.tenant_id)
 
@@ -64,7 +64,7 @@ async def update_product(
     product_id: uuid.UUID,
     data: ProductUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     return await ProductService.update_product(
         db, product_id, current_user.tenant_id, data
@@ -75,7 +75,7 @@ async def update_product(
 async def delete_product(
     product_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_MANAGE)),
 ):
     await ProductService.delete_product(db, product_id, current_user.tenant_id)
 
@@ -87,7 +87,7 @@ async def add_variant(
     product_id: uuid.UUID,
     data: ProductVariantCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     return await ProductService.add_variant(
         db, product_id, current_user.tenant_id, data
@@ -100,7 +100,7 @@ async def update_variant(
     variant_id: uuid.UUID,
     data: ProductVariantUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     return await ProductService.update_variant(
         db, product_id, variant_id, current_user.tenant_id, data

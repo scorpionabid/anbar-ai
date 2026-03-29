@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_permissions
 from app.core.database import get_db
 from app.domain.settings import AIProvider
-from app.domain.user import User
+from app.domain.user import Permission, User
 from app.schemas.settings import (
     AIKeyRead,
     AIKeyUpsert,
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 @router.get("", response_model=TenantSettingsRead, summary="Tenant parametrlərini al")
 async def get_settings(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Cari tenant-ın parametrlərini qaytarır. Mövcud deyilsə default dəyərlərlə yaradır."""
     return await SettingsService.get_or_create_settings(db, current_user.tenant_id)
@@ -31,7 +31,7 @@ async def get_settings(
 async def update_settings(
     data: TenantSettingsUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Tenant parametrlərini yeniləyir. Yalnız göndərilən sahələr dəyişdirilir."""
     return await SettingsService.update_settings(db, current_user.tenant_id, data)
@@ -44,7 +44,7 @@ async def update_settings(
 )
 async def list_ai_keys(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.AI_MANAGE)),
 ):
     """Tenant-a məxsus bütün AI provider açarlarını qaytarır (raw açar heç vaxt göstərilmir)."""
     return await SettingsService.list_ai_keys(db, current_user.tenant_id)
@@ -58,7 +58,7 @@ async def list_ai_keys(
 async def upsert_ai_key(
     data: AIKeyUpsert,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.AI_MANAGE)),
 ):
     """Provider üzrə AI açarını yaradır və ya mövcuddursa yeniləyir. Açar şifrələnərək saxlanır."""
     return await SettingsService.upsert_ai_key(db, current_user.tenant_id, data)
@@ -71,7 +71,7 @@ async def upsert_ai_key(
 async def delete_ai_key(
     provider: AIProvider,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.AI_MANAGE)),
 ):
     """Göstərilən AI provider açarını silir."""
     await SettingsService.delete_ai_key(db, current_user.tenant_id, provider)
@@ -85,7 +85,7 @@ async def delete_ai_key(
 )
 async def get_notification_settings(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Cari tenant-ın bildiriş parametrlərini qaytarır. Mövcud deyilsə default dəyərlərlə yaradır."""
     return await SettingsService.get_or_create_notification_settings(db, current_user.tenant_id)
@@ -98,7 +98,7 @@ async def get_notification_settings(
 async def update_notification_settings(
     data: NotificationSettingsUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.SETTINGS_MANAGE)),
 ):
     """Tenant bildiriş parametrlərini yeniləyir. Yalnız göndərilən sahələr dəyişdirilir."""
     result = await SettingsService.update_notification_settings(db, current_user.tenant_id, data)

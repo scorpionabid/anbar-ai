@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Plus, Search, Filter, Download, Users, SearchX } from "lucide-react";
 import { useCustomers } from "@/hooks/useCustomers";
@@ -24,7 +26,15 @@ const CustomerModal = dynamic(() => import("./components/CustomerModal").then(m 
 import { type CustomerForm, emptyForm } from "./components/types";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
-export default function CustomersPage() {
+export default function CustomersPageWrapper() {
+  return (
+    <ProtectedRoute permission="customers:read">
+      <CustomersPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function CustomersPageContent() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "individual" | "company">("all");

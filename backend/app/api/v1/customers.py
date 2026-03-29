@@ -4,9 +4,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_roles
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User, UserRole
+from app.domain.user import Permission, User
 from app.schemas.customer import (
     CustomerCreate,
     CustomerListResponse,
@@ -25,7 +25,7 @@ async def list_customers(
     is_active: Optional[bool] = Query(None, description="Filtr: Aktivlik statusu"),
     search: Optional[str] = Query(None, max_length=255, description="Axtarış (Ad, Email)"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.CUSTOMERS_READ)),
 ):
     """Bütün müştərilərin siyahısını pagination və axtarış ilə qaytarır."""
     return await CustomerService.list_customers(
@@ -37,9 +37,7 @@ async def list_customers(
 async def create_customer(
     data: CustomerCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.SALES_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.CUSTOMERS_WRITE)),
 ):
     return await CustomerService.create_customer(db, current_user.tenant_id, data)
 
@@ -48,7 +46,7 @@ async def create_customer(
 async def get_customer(
     customer_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.CUSTOMERS_READ)),
 ):
     return await CustomerService.get_customer(db, customer_id, current_user.tenant_id)
 
@@ -58,9 +56,7 @@ async def update_customer(
     customer_id: uuid.UUID,
     data: CustomerUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.SALES_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.CUSTOMERS_WRITE)),
 ):
     return await CustomerService.update_customer(
         db, customer_id, current_user.tenant_id, data
@@ -71,8 +67,6 @@ async def update_customer(
 async def delete_customer(
     customer_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.ORG_ADMIN, UserRole.SALES_MANAGER)
-    ),
+    current_user: User = Depends(require_permissions(Permission.CUSTOMERS_MANAGE)),
 ):
     await CustomerService.delete_customer(db, customer_id, current_user.tenant_id)

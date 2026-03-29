@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Tabs } from "@/components/ui/Tabs";
 import OrdersPage from "@/app/dashboard/orders/page";
@@ -14,7 +16,15 @@ const TABS = [
   { id: "channels",  label: "Kanallar" },
 ];
 
-export default function SalesPage() {
+export default function SalesPageWrapper() {
+  return (
+    <ProtectedRoute permission="orders:read">
+      <SalesPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function SalesPageContent() {
   const [activeTab, setActiveTab] = useState("orders");
 
   return (

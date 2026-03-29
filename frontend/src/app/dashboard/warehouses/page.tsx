@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Warehouse as WarehouseIcon } from "lucide-react";
 import { useWarehouses } from "@/hooks/useWarehouses";
@@ -33,7 +35,15 @@ import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
-export default function WarehousesPage() {
+export default function WarehousesPageWrapper() {
+  return (
+    <ProtectedRoute permission="inventory:read">
+      <WarehousesPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function WarehousesPageContent() {
   const { data: warehouses, isLoading, isError } = useWarehouses();
   const createWarehouse = useCreateWarehouse();
   const updateWarehouse = useUpdateWarehouse();

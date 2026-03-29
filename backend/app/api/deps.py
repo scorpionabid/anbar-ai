@@ -1,4 +1,5 @@
 import uuid
+import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -9,6 +10,8 @@ from app.core.database import get_db
 from app.core.security import decode_token
 from app.domain.user import Permission, User, UserRole
 from app.repositories.user_repo import UserRepository
+
+logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -38,6 +41,10 @@ async def get_current_user(
 
 
 def require_roles(*roles: UserRole):
+    """
+    DEPRECATED — require_permissions() istifadə edin.
+    Geriyə uyğunluq üçün saxlanılır.
+    """
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role == UserRole.SUPER_ADMIN:
             return current_user
@@ -51,17 +58,27 @@ def require_roles(*roles: UserRole):
 
 
 def require_permissions(*permissions: Permission):
+    """
+    Strategy C: Roles as Permission Groups.
+    SUPER_ADMIN bütün permission-ları keçir.
+    Digər rollar üçün user.permissions siyahısında tələb olunan permission olmalıdır.
+    """
     async def permission_checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role == UserRole.SUPER_ADMIN:
             return current_user
-        
+
         user_permissions = set(current_user.permissions or [])
-        required_permissions = set(p.value for p in permissions)
-        
-        if not required_permissions.issubset(user_permissions):
+        required = set(p.value for p in permissions)
+        missing = required - user_permissions
+
+        if missing:
+            logger.warning(
+                "Permission denied for user %s (role=%s). Missing: %s",
+                current_user.id, current_user.role.value, missing,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail=f"Insufficient permissions. Required: {', '.join(sorted(missing))}",
             )
         return current_user
     return permission_checker

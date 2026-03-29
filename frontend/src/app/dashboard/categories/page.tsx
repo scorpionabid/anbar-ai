@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Plus, Search, Filter, Download, Tag } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
@@ -29,7 +31,15 @@ const DeleteCategoryModal = dynamic(() => import("./components/DeleteCategoryMod
 import { type CategoryForm, emptyForm } from "./components/types";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
-export default function CategoriesPage() {
+export default function CategoriesPageWrapper() {
+  return (
+    <ProtectedRoute permission="inventory:read">
+      <CategoriesPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function CategoriesPageContent() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);

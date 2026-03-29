@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime
 
@@ -56,9 +57,15 @@ class UserCreate(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def password_min_length(cls, v: str) -> str:
+    def password_strength(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':,./<>?]", v):
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
@@ -79,9 +86,16 @@ class UserProfileUpdate(BaseModel):
 
     @field_validator("new_password")
     @classmethod
-    def new_password_min_length(cls, v: str | None) -> str | None:
-        if v is not None and len(v) < 8:
-            raise ValueError("New password must be at least 8 characters")
+    def new_password_strength(cls, v: str | None) -> str | None:
+        if v is not None:
+            if len(v) < 8:
+                raise ValueError("New password must be at least 8 characters")
+            if not re.search(r"[A-Z]", v):
+                raise ValueError("New password must contain at least one uppercase letter")
+            if not re.search(r"[0-9]", v):
+                raise ValueError("New password must contain at least one digit")
+            if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':,./<>?]", v):
+                raise ValueError("New password must contain at least one special character")
         return v
 
 
@@ -95,5 +109,6 @@ class UserRead(BaseModel):
     tenant_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    last_login: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

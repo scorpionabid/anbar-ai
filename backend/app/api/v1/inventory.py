@@ -4,9 +4,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User
+from app.domain.user import Permission, User
 from app.schemas.inventory import (
     AdjustRequest,
     InventoryResponse,
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/inventory", tags=["inventory"])
 async def list_inventory(
     warehouse_id: Optional[uuid.UUID] = Query(None, description="Filtr: Anbar ID-si"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     """Bütün anbar qalıqlarının siyahısını qaytarır. Anbar üzrə filtrasiya mümkündür."""
     return await InventoryService.list_inventory(db, current_user.tenant_id, warehouse_id)
@@ -36,7 +36,7 @@ async def list_all_movements(
     page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
     per_page: int = Query(20, ge=1, le=100, description="Səhifə başına nəticə sayı"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     """Bütün tenant-ın stok hərəkətlərini qaytarır. Anbar və hərəkət növünə görə filtrasiya mümkündür."""
     return await InventoryService.list_all_movements(
@@ -53,7 +53,7 @@ async def list_all_movements(
 async def get_inventory(
     inventory_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     """ID vasitəsilə konkret anbar qalığı haqqında məlumat qaytarır."""
     return await InventoryService.get_inventory(db, inventory_id, current_user.tenant_id)
@@ -64,7 +64,7 @@ async def list_movements(
     inventory_id: uuid.UUID,
     limit: int = Query(50, ge=1, le=200, description="Maksimum nəticə sayı"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     """Konkret anbar qalığı üzrə bütün giriş/çıxış/rezerv hərəkətləri siyahısını qaytarır."""
     return await InventoryService.list_movements(
@@ -76,7 +76,7 @@ async def list_movements(
 async def adjust_stock(
     data: AdjustRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     """
     Anbardakı məhsul miqdarını artırmaq, azaltmaq və ya birbaşa düzəliş etmək üçün istifadə olunur.
@@ -93,7 +93,7 @@ async def adjust_stock(
 async def reserve_stock(
     data: ReserveRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     """
     Sifariş üçün məhsulu bloklayır. `FOR UPDATE` istifadə edərək race condition qarşısını alır.
@@ -108,7 +108,7 @@ async def reserve_stock(
 async def release_stock(
     data: ReleaseRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     """
     Releases a previous reservation (order cancelled or expired).

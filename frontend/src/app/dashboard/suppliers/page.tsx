@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import { useState } from "react";
 import { Plus, Search, Filter, Download, Truck, SearchX } from "lucide-react";
 import { downloadExport } from "@/lib/exportUtils";
@@ -25,7 +27,15 @@ const SupplierModal = dynamic(() => import("./components/SupplierModal").then(m 
 import { type SupplierForm, emptyForm } from "./components/types";
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
-export default function SuppliersPage() {
+export default function SuppliersPageWrapper() {
+  return (
+    <ProtectedRoute permission="inventory:read">
+      <SuppliersPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function SuppliersPageContent() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");

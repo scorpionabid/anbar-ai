@@ -4,9 +4,9 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_roles
+from app.api.deps import require_permissions
 from app.core.database import get_db
-from app.domain.user import User, UserRole
+from app.domain.user import Permission, User
 from app.schemas.warehouse import WarehouseCreate, WarehouseResponse, WarehouseUpdate
 from app.services.warehouse_service import WarehouseService
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/warehouses", tags=["warehouses"])
 @router.get("", response_model=List[WarehouseResponse], summary="Anbarların siyahısı")
 async def list_warehouses(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     """Cari tenant-a məxsus bütün anbarların siyahısını qaytarır."""
     return await WarehouseService.list_warehouses(db, current_user.tenant_id)
@@ -26,7 +26,7 @@ async def list_warehouses(
 async def create_warehouse(
     data: WarehouseCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     """Yeni anbar yaradır. Anbar adı tenant daxilində unikal olmalıdır."""
     return await WarehouseService.create_warehouse(db, current_user.tenant_id, data)
@@ -36,7 +36,7 @@ async def create_warehouse(
 async def get_warehouse(
     warehouse_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_READ)),
 ):
     return await WarehouseService.get_warehouse(db, warehouse_id, current_user.tenant_id)
 
@@ -46,7 +46,7 @@ async def update_warehouse(
     warehouse_id: uuid.UUID,
     data: WarehouseUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_WRITE)),
 ):
     return await WarehouseService.update_warehouse(
         db, warehouse_id, current_user.tenant_id, data
@@ -57,7 +57,7 @@ async def update_warehouse(
 async def delete_warehouse(
     warehouse_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ORG_ADMIN)),
+    current_user: User = Depends(require_permissions(Permission.INVENTORY_MANAGE)),
 ):
     """Anbarı silmir — `is_active = False` edir. Mövcud inventory qeydləri saxlanılır."""
     await WarehouseService.delete_warehouse(db, warehouse_id, current_user.tenant_id)

@@ -12,6 +12,7 @@ from app.domain.purchase_order import PurchaseOrder, PurchaseOrderItem, Purchase
 from app.domain.channel import Channel, ChannelListing, ChannelType
 from app.domain.webhook import Webhook, WebhookEvent
 from app.domain.settings import TenantSettings, AIProviderKey, NotificationSettings, WeightUnit, DimensionUnit, DateFormat, AIProvider
+from app.domain.refresh_token import RefreshToken
 
 __all__ = [
     "Tenant", "User", "UserRole",
@@ -26,4 +27,5 @@ __all__ = [
     "PurchaseOrder", "PurchaseOrderItem", "PurchaseOrderStatus",
     "Channel", "ChannelListing", "ChannelType",
     "TenantSettings", "AIProviderKey", "NotificationSettings", "WeightUnit", "DimensionUnit", "DateFormat", "AIProvider",
+    "RefreshToken",
 ]

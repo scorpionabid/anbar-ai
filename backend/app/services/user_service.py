@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
-from app.domain.user import User
+from app.domain.user import User, UserRole
 from app.repositories.user_repo import UserRepository
 from app.schemas.user import DEFAULT_ROLE_PERMISSIONS, UserCreate, UserProfileUpdate, UserUpdate
 
@@ -59,28 +59,66 @@ class UserService:
         return user
 
     async def deactivate_user(
-        self, user_id: uuid.UUID, tenant_id: uuid.UUID
+        self, user_id: uuid.UUID, tenant_id: uuid.UUID, current_user_id: uuid.UUID
     ) -> User:
+        # Self-protection: özünü deaktiv edə bilməz
+        if user_id == current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot deactivate your own account",
+            )
+
         user = await self.repo.get_by_id_and_tenant(user_id, tenant_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
+
+        # Last-admin protection: tenant-ın son ORG_ADMIN-i deaktiv olunmamalı
+        if user.role in (UserRole.ORG_ADMIN, UserRole.SUPER_ADMIN):
+            await self._check_last_admin(tenant_id, user_id)
 
         user = await self.repo.update(user, is_active=False)
         await self.repo.db.commit()
         return user
 
-    async def delete_user(self, user_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
+    async def delete_user(self, user_id: uuid.UUID, tenant_id: uuid.UUID, current_user_id: uuid.UUID) -> None:
         """Permanently delete a user (Hard Delete)"""
+        # Self-protection: özünü silə bilməz
+        if user_id == current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot delete your own account",
+            )
+
         user = await self.repo.get_by_id_and_tenant(user_id, tenant_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
-        
+
+        # Last-admin protection
+        if user.role in (UserRole.ORG_ADMIN, UserRole.SUPER_ADMIN):
+            await self._check_last_admin(tenant_id, user_id)
+
         await self.repo.delete(user)
         await self.repo.db.commit()
+
+    async def _check_last_admin(self, tenant_id: uuid.UUID, exclude_user_id: uuid.UUID) -> None:
+        """Tenant-da bu istifadəçi xaricində başqa aktiv admin olub-olmadığını yoxlayır."""
+        all_users = await self.repo.list_by_tenant(tenant_id)
+        admin_roles = {UserRole.ORG_ADMIN, UserRole.SUPER_ADMIN}
+        other_admins = [
+            u for u in all_users
+            if u.id != exclude_user_id
+            and u.role in admin_roles
+            and u.is_active
+        ]
+        if not other_admins:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot remove the last admin of this tenant. Assign another admin first.",
+            )
 
     async def update_my_profile(
         self, user_id: uuid.UUID, data: UserProfileUpdate

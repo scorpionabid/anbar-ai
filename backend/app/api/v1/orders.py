@@ -4,10 +4,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, require_roles
+from app.api.deps import require_permissions
 from app.core.database import get_db
 from app.domain.order import OrderStatus
-from app.domain.user import User, UserRole
+from app.domain.user import Permission, User
 from app.schemas.order import (
     OrderCreate,
     OrderListResponse,
@@ -27,7 +27,7 @@ async def list_orders(
     customer_id: Optional[uuid.UUID] = Query(None, description="Filtr: Müştəri ID-si"),
     channel_id: Optional[uuid.UUID] = Query(None, description="Filtr: Satış kanalı ID-si"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_READ)),
 ):
     """Bütün sifarişlərin siyahısını pagination ilə qaytarır. Status, müştəri və kanal üzrə filtrasiya mümkündür."""
     return await OrderService.list_orders(
@@ -45,7 +45,7 @@ async def list_orders(
 async def create_order(
     data: OrderCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_WRITE)),
 ):
     """
     Yeni sifariş və ona aid sətirləri (items) yaradır.
@@ -63,7 +63,7 @@ async def create_order(
 async def get_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_READ)),
 ):
     return await OrderService.get_order(db, order_id, current_user.tenant_id)
 
@@ -73,7 +73,7 @@ async def update_order(
     order_id: uuid.UUID,
     data: OrderUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_WRITE)),
 ):
     return await OrderService.update_order(db, order_id, current_user.tenant_id, data)
 
@@ -82,7 +82,7 @@ async def update_order(
 async def confirm_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_MANAGE)),
 ):
     """
     Sifarişi təsdiqləyir (`CONFIRMED`). Bu mərhələdə stok rezervasiyası (Reserve) baş verir.
@@ -100,7 +100,7 @@ async def confirm_order(
 async def cancel_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_MANAGE)),
 ):
     return await OrderService.cancel_order(
         db,
@@ -114,9 +114,7 @@ async def cancel_order(
 async def ship_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(
-        require_roles(UserRole.WAREHOUSE_MANAGER, UserRole.ORG_ADMIN)
-    ),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_MANAGE)),
 ):
     return await OrderService.ship_order(
         db,
@@ -130,7 +128,7 @@ async def ship_order(
 async def deliver_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permissions(Permission.ORDERS_MANAGE)),
 ):
     return await OrderService.deliver_order(
         db,

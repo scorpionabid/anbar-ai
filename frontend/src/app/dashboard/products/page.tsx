@@ -1,5 +1,7 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 import React, { useState } from "react";
 import { Plus, Search, Filter, Download, Box, ShoppingCart } from "lucide-react";
 import { downloadExport } from "@/lib/exportUtils";
@@ -38,7 +40,15 @@ import {
 
 import { SkeletonRow } from "@/components/ui/SkeletonRow";
 
-export default function ProductsPage() {
+export default function ProductsPageWrapper() {
+  return (
+    <ProtectedRoute permission="inventory:read">
+      <ProductsPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function ProductsPageContent() {
   const [page, setPage] = useState(1);
   const { data, isLoading, isError } = useProducts(page, 20);
 
