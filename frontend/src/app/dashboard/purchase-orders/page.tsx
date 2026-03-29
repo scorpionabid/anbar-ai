@@ -1,83 +1,23 @@
 "use client";
 
-import { useState, Fragment } from "react";
-import { Plus, FileText, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { useState } from "react";
+import { Plus, ShoppingBag } from "lucide-react";
 import { usePurchaseOrders } from "@/hooks/usePurchaseOrders";
-import {
-  useCreatePurchaseOrder,
-  useUpdatePurchaseOrderStatus,
-} from "@/hooks/usePurchaseOrderMutations";
-import { useWarehouses } from "@/hooks/useWarehouses";
-import { useSuppliers } from "@/hooks/useSuppliers";
-import { useProducts } from "@/hooks/useProducts";
-import type { PurchaseOrder, PurchaseOrderStatus } from "@/types/api";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Textarea } from "@/components/ui/Textarea";
-import { Modal } from "@/components/ui/Modal";
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-// ── Labels & badges ──────────────────────────────────────────────────────────
-
-const PO_STATUS_LABELS: Record<PurchaseOrderStatus, string> = {
-  draft: "Qaralama",
-  sent: "Göndərildi",
-  confirmed: "Təsdiqləndi",
-  partial_received: "Qismən alındı",
-  received: "Alındı",
-  cancelled: "Ləğv edildi",
-};
-
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
-
-function poStatusBadge(status: PurchaseOrderStatus): BadgeVariant {
-  switch (status) {
-    case "draft": return "secondary";
-    case "sent": return "default";
-    case "confirmed": return "default";
-    case "partial_received": return "warning";
-    case "received": return "success";
-    case "cancelled": return "destructive";
-    default: return "secondary";
-  }
-}
-
-const ALL_PO_STATUSES: PurchaseOrderStatus[] = [
-  "draft",
-  "sent",
-  "confirmed",
-  "partial_received",
-  "received",
-  "cancelled",
-];
-
-// ── Line item form type ───────────────────────────────────────────────────────
-
-interface POLineItem {
-  variant_id: string;
-  ordered_quantity: string;
-  unit_cost: string;
-}
-
-function emptyPOLineItem(): POLineItem {
-  return { variant_id: "", ordered_quantity: "1", unit_cost: "0" };
-}
-
-// ── Skeleton ─────────────────────────────────────────────────────────────────
+// Extracted Components
+import { PurchaseOrderStats } from "./components/PurchaseOrderStats";
+import { PurchaseOrderRow } from "./components/PurchaseOrderRow";
+import { CreatePurchaseOrderModal } from "./components/CreatePurchaseOrderModal";
+import { POStatusModal } from "./components/POStatusModal";
+import type { PurchaseOrder } from "@/types/api";
 
 function SkeletonRow() {
   return (
     <tr className="border-b border-border/50">
       {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <td key={i} className="px-6 py-4">
+        <td key={i} className="px-6 py-5">
           <div className="h-4 bg-secondary/60 rounded-lg animate-pulse" />
         </td>
       ))}
@@ -85,264 +25,64 @@ function SkeletonRow() {
   );
 }
 
-// ── Status change modal ───────────────────────────────────────────────────────
-
-interface StatusModalProps {
-  po: PurchaseOrder | null;
-  open: boolean;
-  onClose: () => void;
-}
-
-function POStatusModal({ po, open, onClose }: StatusModalProps) {
-  const [selectedStatus, setSelectedStatus] = useState<PurchaseOrderStatus | "">("");
-  const [error, setError] = useState<string | null>(null);
-  const updateStatus = useUpdatePurchaseOrderStatus();
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!po || !selectedStatus) return;
-    setError(null);
-    try {
-      console.log(`[POStatusModal] Updating PO ${po.id} status to:`, selectedStatus);
-      await updateStatus.mutateAsync({
-        id: po.id,
-        status: selectedStatus as PurchaseOrderStatus,
-      });
-      console.log("[POStatusModal] Status successfully updated");
-      onClose();
-    } catch (err) {
-      console.error("[POStatusModal] Error updating PO status:", err);
-      setError(err instanceof Error ? err.message : "Xəta baş verdi.");
-    }
-  }
-
-  const availableStatuses = ALL_PO_STATUSES.filter(
-    (s) => s !== po?.status
-  );
-
-  return (
-    <Modal open={open} onClose={onClose} title="Statusu dəyiş" size="sm">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
-            Yeni status
-          </label>
-          <Select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value as PurchaseOrderStatus)}
-          >
-            <option value="">Status seçin</option>
-            {availableStatuses.map((s) => (
-              <option key={s} value={s}>
-                {PO_STATUS_LABELS[s]}
-              </option>
-            ))}
-          </Select>
-        </div>
-        {error && (
-          <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Ləğv et
-          </Button>
-          <Button
-            type="submit"
-            disabled={!selectedStatus || updateStatus.isPending}
-          >
-            {updateStatus.isPending ? "Yenilənir..." : "Yenilə"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-// ── Page ─────────────────────────────────────────────────────────────────────
-
 export default function PurchaseOrdersPage() {
   const [page, setPage] = useState(1);
   const { data, isLoading, isError } = usePurchaseOrders(page, 20);
-  const { data: warehousesData } = useWarehouses();
-  const { data: suppliersData } = useSuppliers(1, 100);
-  const { data: productsData } = useProducts(1, 1000);
 
-  const createPO = useCreatePurchaseOrder();
-
-  // Create modal state
+  // Modals state
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [supplierId, setSupplierId] = useState("");
-  const [warehouseId, setWarehouseId] = useState("");
-  const [expectedDate, setExpectedDate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [lineItems, setLineItems] = useState<POLineItem[]>([emptyPOLineItem()]);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  // Status modal
   const [statusModalPO, setStatusModalPO] = useState<PurchaseOrder | null>(null);
 
-  // Expanded rows
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-
-  function toggleRow(id: string) {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function openCreate() {
-    console.log("[PurchaseOrdersPage] Opening Create PO modal");
-    setSupplierId("");
-    setWarehouseId("");
-    setExpectedDate("");
-    setNotes("");
-    setLineItems([emptyPOLineItem()]);
-    setCreateError(null);
-    setCreateModalOpen(true);
-  }
-
-  function closeCreate() {
-    console.log("[PurchaseOrdersPage] Closing Create PO modal");
-    setCreateModalOpen(false);
-    setCreateError(null);
-  }
-
-  function addLineItem() {
-    setLineItems((prev) => [...prev, emptyPOLineItem()]);
-  }
-
-  function removeLineItem(index: number) {
-    setLineItems((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function updateLineItem(index: number, field: keyof POLineItem, value: string) {
-    setLineItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-    );
-  }
-
-  function lineTotal(item: POLineItem): number {
-    const qty = parseFloat(item.ordered_quantity) || 0;
-    const cost = parseFloat(item.unit_cost) || 0;
-    return qty * cost;
-  }
-
-  function grandTotal(): number {
-    return lineItems.reduce((sum, item) => sum + lineTotal(item), 0);
-  }
-
-  async function handleCreateSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    console.log("[PurchaseOrdersPage] Handling PO create submission. Data:", {
-      supplierId,
-      warehouseId,
-      expectedDate,
-      lineItemsCount: lineItems.length
-    });
-    setCreateError(null);
-
-    if (!supplierId) {
-      setCreateError("Təchizatçı mütləqdir.");
-      return;
-    }
-    if (!warehouseId) {
-      setCreateError("Anbar mütləqdir.");
-      return;
-    }
-    if (lineItems.length === 0) {
-      setCreateError("Ən azı bir məhsul sətri əlavə edin.");
-      return;
-    }
-    for (const item of lineItems) {
-      if (!item.variant_id.trim()) {
-        setCreateError("Bütün sətirlərdə variant ID daxil edin.");
-        return;
-      }
-    }
-
-    const payload = {
-      supplier_id: supplierId,
-      warehouse_id: warehouseId,
-      expected_delivery_date: expectedDate || undefined,
-      notes: notes.trim() || undefined,
-      items: lineItems.map((item) => ({
-        variant_id: item.variant_id.trim(),
-        ordered_quantity: Math.floor(parseFloat(item.ordered_quantity) || 1),
-        unit_cost: parseFloat(item.unit_cost) || 0,
-      })),
-    };
-
-    try {
-      await createPO.mutateAsync(payload);
-      console.log("[PurchaseOrdersPage] PO successfully created");
-      closeCreate();
-    } catch (err) {
-      console.error("[PurchaseOrdersPage] Error creating PO:", err);
-      setCreateError(err instanceof Error ? err.message : "Xəta baş verdi.");
-    }
-  }
-
   const totalPages = data ? Math.ceil(data.total / 20) : 1;
-  const warehouses = warehousesData ?? [];
-  const suppliers = suppliersData?.data ?? [];
-  const allVariants = (productsData?.data ?? []).flatMap(p => 
-    p.variants.map(v => ({
-      id: v.id,
-      name: `${p.name} — ${v.name} (${v.sku})`,
-    }))
-  );
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
+    <div className="p-8 space-y-8 animate-in fade-in duration-700">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            Alış Sifarişləri
+          <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
+             Satınalma Sifarişləri
           </h1>
-          <p className="text-muted-foreground font-medium mt-1">
-            {isLoading
-              ? "Yüklənir..."
-              : `${data?.total ?? 0} alış sifarişi mövcuddur`}
+          <p className="text-sm font-medium text-muted-foreground mt-1 tracking-tight">
+            {isLoading ? "Yüklənir..." : `${data?.total ?? 0} satınalma qeydə alınıb`}
           </p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Yeni Alış Sifarişi
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => setCreateModalOpen(true)} className="gap-2 shadow-lg shadow-primary/20 rounded-2xl h-11 px-8 font-black">
+            <Plus className="h-4 w-4" />
+            Yeni Satınalma
+          </Button>
+        </div>
       </div>
 
-      {/* Table */}
-      <Card glass>
+      {/* KPI Stats Section */}
+      {!isLoading && !isError && data && (
+        <PurchaseOrderStats orders={data.data} totalCount={data.total} />
+      )}
+
+      {/* Table Section */}
+      <Card glass className="overflow-hidden border-border/40 shadow-xl shadow-primary/5">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/50">
+              <thead className="bg-secondary/10">
+                <tr className="border-b border-border/50 text-left">
                   {[
-                    "PO №",
+                    "Sifariş №",
                     "Təchizatçı",
                     "Anbar",
                     "Status",
                     "Məbləğ",
-                    "Gözlənilən tarix",
-                    "Əməliyyatlar",
+                    "Tarix",
+                    "Əməllər",
                   ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
-                    >
+                    <th key={h} className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border/20">
                 {isLoading && (
                   <>
                     <SkeletonRow />
@@ -352,384 +92,51 @@ export default function PurchaseOrdersPage() {
                 )}
                 {isError && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-12 text-center text-sm text-destructive"
-                    >
-                      Alış sifarişləri yüklənərkən xəta baş verdi.
+                    <td colSpan={7} className="px-6 py-20 text-center text-sm text-destructive">
+                       Satınalma sifarişləri yüklənərkən xəta baş verdi. Zəhmət olmasa internet bağlantısını yoxlayın.
                     </td>
                   </tr>
                 )}
                 {!isLoading && !isError && data?.data.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-12 text-center text-sm text-muted-foreground"
-                    >
-                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      Hələ heç bir alış sifarişi yoxdur.
+                    <td colSpan={7} className="px-6 py-24 text-center text-sm text-muted-foreground">
+                       <ShoppingBag className="h-16 w-16 mx-auto mb-4 opacity-5" />
+                       Hələ heç bir alış sifarişi tapılmadı.
                     </td>
                   </tr>
                 )}
-                {(data?.data ?? []).map((po) => {
-                  const isExpanded = expandedRows.has(po.id);
-
-                    return (
-                      <Fragment key={po.id}>
-                        <tr
-                        key={po.id}
-                        className={cn(
-                          "border-b border-border/30 hover:bg-secondary/30 transition-colors",
-                          isExpanded && "bg-secondary/20"
-                        )}
-                      >
-                        <td className="px-6 py-4 text-sm font-semibold text-primary">
-                          <button
-                            onClick={() => toggleRow(po.id)}
-                            className="flex items-center gap-1.5 hover:underline"
-                          >
-                            {po.po_number}
-                            {isExpanded ? (
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-foreground">
-                          {po.supplier?.name ?? "—"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {po.warehouse?.name ?? "—"}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge variant={poStatusBadge(po.status)}>
-                            {PO_STATUS_LABELS[po.status]}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-foreground">
-                          {po.total_amount.toLocaleString("az-AZ", {
-                            style: "currency",
-                            currency: "AZN",
-                          })}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {po.expected_delivery_date
-                            ? new Date(po.expected_delivery_date).toLocaleDateString("az-AZ")
-                            : "—"}
-                        </td>
-                        <td className="px-6 py-4">
-                          {po.status !== "received" && po.status !== "cancelled" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setStatusModalPO(po)}
-                            >
-                              Status
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr
-                          key={`${po.id}-expanded`}
-                          className="border-b border-border/30"
-                        >
-                          <td colSpan={7} className="p-0">
-                            <div className="bg-secondary/20 border-t border-border/30 px-8 py-4">
-                              <p className="text-sm font-semibold text-foreground mb-3">
-                                Sifariş sətirləri
-                              </p>
-                              {po.items.length === 0 ? (
-                                <p className="text-xs text-muted-foreground">
-                                  Sətir yoxdur.
-                                </p>
-                              ) : (
-                                <div className="overflow-x-auto rounded-xl border border-border/40">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-border/40 bg-background/50">
-                                        {[
-                                          "SKU",
-                                          "Ad",
-                                          "Sifariş miqdarı",
-                                          "Alınan miqdar",
-                                          "Vahid məbləği",
-                                          "Cəmi",
-                                        ].map((h) => (
-                                          <th
-                                            key={h}
-                                            className="px-4 py-2.5 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider"
-                                          >
-                                            {h}
-                                          </th>
-                                        ))}
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {po.items.map((item) => (
-                                        <tr
-                                          key={item.id}
-                                          className="border-b border-border/20 last:border-0"
-                                        >
-                                          <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                                            {item.variant?.sku ?? "—"}
-                                          </td>
-                                          <td className="px-4 py-2.5 font-medium text-foreground">
-                                            {item.variant?.name ?? "—"}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-foreground">
-                                            {item.ordered_quantity}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-foreground">
-                                            {item.received_quantity}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-foreground">
-                                            {item.unit_cost.toLocaleString("az-AZ", {
-                                              style: "currency",
-                                              currency: "AZN",
-                                            })}
-                                          </td>
-                                          <td className="px-4 py-2.5 font-semibold text-foreground">
-                                            {item.line_total.toLocaleString("az-AZ", {
-                                              style: "currency",
-                                              currency: "AZN",
-                                            })}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
-                              {po.notes && (
-                                <p className="mt-3 text-xs text-muted-foreground">
-                                  <span className="font-medium">Qeyd:</span> {po.notes}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                      </Fragment>
-                    );
-                })}
+                {(data?.data ?? []).map((po) => (
+                  <PurchaseOrderRow
+                    key={po.id}
+                    po={po}
+                    onStatusClick={(target) => setStatusModalPO(target)}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border/50">
-              <p className="text-sm text-muted-foreground">
-                Səhifə {page} / {totalPages}
+            <div className="flex items-center justify-between px-6 py-5 border-t border-border/50 bg-secondary/5">
+              <p className="text-xs font-bold text-muted-foreground opacity-70">
+                Səhifə <span className="text-foreground">{page}</span> / {totalPages}
               </p>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Əvvəlki
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  Növbəti
-                </Button>
+                <Button size="sm" variant="outline" onClick={() => setPage(page - 1)} disabled={page === 1} className="h-9 px-4 rounded-xl">Əvvəlki</Button>
+                <Button size="sm" variant="outline" onClick={() => setPage(page + 1)} disabled={page === totalPages} className="h-9 px-4 rounded-xl">Növbəti</Button>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Create PO Modal */}
-      <Modal
+      {/* Modals */}
+      <CreatePurchaseOrderModal
         open={createModalOpen}
-        onClose={closeCreate}
-        title="Yeni Alış Sifarişi"
-        description="Alış sifarişi məlumatlarını və məhsul sətirləri əlavə edin."
-        size="lg"
-      >
-        <form onSubmit={handleCreateSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Təchizatçı <span className="text-destructive">*</span>
-              </label>
-              <Select
-                value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-              >
-                <option value="">Təchizatçı seçin</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Anbar <span className="text-destructive">*</span>
-              </label>
-              <Select
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-              >
-                <option value="">Anbar seçin</option>
-                {warehouses.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </div>
+        onClose={() => setCreateModalOpen(false)}
+      />
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Gözlənilən tarix
-            </label>
-            <Input
-              type="date"
-              value={expectedDate}
-              onChange={(e) => setExpectedDate(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Qeydlər
-            </label>
-            <Textarea
-              placeholder="Əlavə qeydlər..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          {/* Line items */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-foreground">Məhsul sətirləri</p>
-              <Button type="button" size="sm" variant="outline" onClick={addLineItem}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Sətir əlavə et
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {/* Header */}
-              <div className="grid grid-cols-11 gap-2 px-1">
-                <p className="col-span-5 text-xs font-bold text-muted-foreground uppercase">
-                  Variant ID
-                </p>
-                <p className="col-span-2 text-xs font-bold text-muted-foreground uppercase">
-                  Miqdar
-                </p>
-                <p className="col-span-2 text-xs font-bold text-muted-foreground uppercase">
-                  Maya dəyəri
-                </p>
-                <p className="col-span-1 text-xs font-bold text-muted-foreground uppercase">
-                  Cəmi
-                </p>
-                <p className="col-span-1" />
-              </div>
-
-              {lineItems.map((item, index) => (
-                <div key={index} className="grid grid-cols-11 gap-2 items-center">
-                  <div className="col-span-5">
-                    <Select
-                      value={item.variant_id}
-                      onChange={(e) =>
-                        updateLineItem(index, "variant_id", e.target.value)
-                      }
-                    >
-                      <option value="">Məhsul seçin</option>
-                      {allVariants.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={item.ordered_quantity}
-                      onChange={(e) =>
-                        updateLineItem(index, "ordered_quantity", e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.unit_cost}
-                      onChange={(e) =>
-                        updateLineItem(index, "unit_cost", e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="col-span-1 text-sm font-medium text-foreground">
-                    {lineTotal(item).toFixed(2)}
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removeLineItem(index)}
-                      disabled={lineItems.length === 1}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Grand total */}
-            <div className="flex justify-end mt-3 pt-3 border-t border-border/50">
-              <p className="text-sm font-bold text-foreground">
-                Ümumi:{" "}
-                {grandTotal().toLocaleString("az-AZ", {
-                  style: "currency",
-                  currency: "AZN",
-                })}
-              </p>
-            </div>
-          </div>
-
-          {createError && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              {createError}
-            </p>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={closeCreate}>
-              Ləğv et
-            </Button>
-            <Button type="submit" disabled={createPO.isPending}>
-              {createPO.isPending ? "Yaradılır..." : "Sifariş yarat"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Status change modal */}
       <POStatusModal
         po={statusModalPO}
         open={statusModalPO !== null}
