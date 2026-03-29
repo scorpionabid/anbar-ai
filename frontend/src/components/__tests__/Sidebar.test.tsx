@@ -40,6 +40,12 @@ vi.mock("@/stores/uiStore", () => ({
   }),
 }));
 
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    can: (p: string) => true,
+  }),
+}));
+
 import Sidebar from "@/components/Sidebar";
 
 describe("Sidebar komponenti", () => {
