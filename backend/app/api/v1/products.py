@@ -24,7 +24,7 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("", response_model=ProductListResponse, summary="Məhsulların siyahısı")
 async def list_products(
     page: int = Query(1, ge=1, description="Səhifə nömrəsi"),
-    per_page: int = Query(20, ge=1, le=100, description="Səhifədəki element sayı"),
+    per_page: int = Query(20, ge=1, le=1000, description="Səhifədəki element sayı"),
     category_id: Optional[uuid.UUID] = Query(None, description="Filtr: Kateqoriya ID-si"),
     search: Optional[str] = Query(None, description="Ad, SKU və ya təsvir üzrə axtarış"),
     is_active: Optional[bool] = Query(None, description="Aktivlik statusuna görə filtr"),

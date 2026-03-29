@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Plus, FileText, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -11,6 +11,7 @@ import {
 } from "@/hooks/usePurchaseOrderMutations";
 import { useWarehouses } from "@/hooks/useWarehouses";
 import { useSuppliers } from "@/hooks/useSuppliers";
+import { useProducts } from "@/hooks/useProducts";
 import type { PurchaseOrder, PurchaseOrderStatus } from "@/types/api";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -102,12 +103,15 @@ function POStatusModal({ po, open, onClose }: StatusModalProps) {
     if (!po || !selectedStatus) return;
     setError(null);
     try {
+      console.log(`[POStatusModal] Updating PO ${po.id} status to:`, selectedStatus);
       await updateStatus.mutateAsync({
         id: po.id,
         status: selectedStatus as PurchaseOrderStatus,
       });
+      console.log("[POStatusModal] Status successfully updated");
       onClose();
     } catch (err) {
+      console.error("[POStatusModal] Error updating PO status:", err);
       setError(err instanceof Error ? err.message : "Xəta baş verdi.");
     }
   }
@@ -163,6 +167,7 @@ export default function PurchaseOrdersPage() {
   const { data, isLoading, isError } = usePurchaseOrders(page, 20);
   const { data: warehousesData } = useWarehouses();
   const { data: suppliersData } = useSuppliers(1, 100);
+  const { data: productsData } = useProducts(1, 1000);
 
   const createPO = useCreatePurchaseOrder();
 
@@ -191,6 +196,7 @@ export default function PurchaseOrdersPage() {
   }
 
   function openCreate() {
+    console.log("[PurchaseOrdersPage] Opening Create PO modal");
     setSupplierId("");
     setWarehouseId("");
     setExpectedDate("");
@@ -201,6 +207,7 @@ export default function PurchaseOrdersPage() {
   }
 
   function closeCreate() {
+    console.log("[PurchaseOrdersPage] Closing Create PO modal");
     setCreateModalOpen(false);
     setCreateError(null);
   }
@@ -231,6 +238,12 @@ export default function PurchaseOrdersPage() {
 
   async function handleCreateSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[PurchaseOrdersPage] Handling PO create submission. Data:", {
+      supplierId,
+      warehouseId,
+      expectedDate,
+      lineItemsCount: lineItems.length
+    });
     setCreateError(null);
 
     if (!supplierId) {
@@ -259,15 +272,17 @@ export default function PurchaseOrdersPage() {
       notes: notes.trim() || undefined,
       items: lineItems.map((item) => ({
         variant_id: item.variant_id.trim(),
-        ordered_quantity: parseFloat(item.ordered_quantity) || 1,
+        ordered_quantity: Math.floor(parseFloat(item.ordered_quantity) || 1),
         unit_cost: parseFloat(item.unit_cost) || 0,
       })),
     };
 
     try {
       await createPO.mutateAsync(payload);
+      console.log("[PurchaseOrdersPage] PO successfully created");
       closeCreate();
     } catch (err) {
+      console.error("[PurchaseOrdersPage] Error creating PO:", err);
       setCreateError(err instanceof Error ? err.message : "Xəta baş verdi.");
     }
   }
@@ -275,6 +290,12 @@ export default function PurchaseOrdersPage() {
   const totalPages = data ? Math.ceil(data.total / 20) : 1;
   const warehouses = warehousesData ?? [];
   const suppliers = suppliersData?.data ?? [];
+  const allVariants = (productsData?.data ?? []).flatMap(p => 
+    p.variants.map(v => ({
+      id: v.id,
+      name: `${p.name} — ${v.name} (${v.sku})`,
+    }))
+  );
 
   return (
     <div className="p-8 space-y-8">
@@ -353,9 +374,9 @@ export default function PurchaseOrdersPage() {
                 {(data?.data ?? []).map((po) => {
                   const isExpanded = expandedRows.has(po.id);
 
-                  return (
-                    <>
-                      <tr
+                    return (
+                      <Fragment key={po.id}>
+                        <tr
                         key={po.id}
                         className={cn(
                           "border-b border-border/30 hover:bg-secondary/30 transition-colors",
@@ -490,8 +511,8 @@ export default function PurchaseOrdersPage() {
                           </td>
                         </tr>
                       )}
-                    </>
-                  );
+                      </Fragment>
+                    );
                 })}
               </tbody>
             </table>
@@ -624,13 +645,19 @@ export default function PurchaseOrdersPage() {
               {lineItems.map((item, index) => (
                 <div key={index} className="grid grid-cols-11 gap-2 items-center">
                   <div className="col-span-5">
-                    <Input
-                      placeholder="Variant UUID"
+                    <Select
                       value={item.variant_id}
                       onChange={(e) =>
                         updateLineItem(index, "variant_id", e.target.value)
                       }
-                    />
+                    >
+                      <option value="">Məhsul seçin</option>
+                      {allVariants.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </Select>
                   </div>
                   <div className="col-span-2">
                     <Input

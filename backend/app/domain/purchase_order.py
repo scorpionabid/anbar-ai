@@ -38,7 +38,9 @@ class PurchaseOrder(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("warehouses.id", ondelete="RESTRICT"), nullable=False
     )
     status: Mapped[PurchaseOrderStatus] = mapped_column(
-        Enum(PurchaseOrderStatus, name="purchase_order_status"), nullable=False, default=PurchaseOrderStatus.DRAFT
+        Enum(PurchaseOrderStatus, name="purchase_order_status", values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=PurchaseOrderStatus.DRAFT
     )
     expected_delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     total_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0)
