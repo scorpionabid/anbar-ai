@@ -126,6 +126,7 @@ async def login(
     )
 
     await db.commit()
+    print(f"DEBUG: Login transaction committed for {user.email}")
     return TokenResponse(access_token=access_token, refresh_token=raw_refresh_token)
 
 

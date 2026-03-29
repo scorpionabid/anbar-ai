@@ -21,7 +21,7 @@ class RefreshTokenRepository:
             select(RefreshToken).where(
                 RefreshToken.jti == jti,
                 RefreshToken.tenant_id == tenant_id,
-                RefreshToken.is_revoked == False,  # noqa: E712
+                RefreshToken.revoked_at == None,  # noqa: E711
             )
         )
         return result.scalar_one_or_none()
@@ -31,26 +31,28 @@ class RefreshTokenRepository:
             select(RefreshToken).where(
                 RefreshToken.token_hash == token_hash,
                 RefreshToken.tenant_id == tenant_id,
-                RefreshToken.is_revoked == False,  # noqa: E712
+                RefreshToken.revoked_at == None,  # noqa: E711
             )
         )
         return result.scalar_one_or_none()
 
     async def revoke(self, token: RefreshToken) -> None:
         """Tək bir refresh token-i revoke et."""
-        token.is_revoked = True
+        from datetime import datetime, timezone
+        token.revoked_at = datetime.now(timezone.utc)
         await self.db.flush()
 
     async def revoke_all_for_user(self, user_id: uuid.UUID, tenant_id: uuid.UUID) -> int:
         """İstifadəçinin bütün aktiv refresh token-lərini revoke et (force logout)."""
+        from datetime import datetime, timezone
         result = await self.db.execute(
             update(RefreshToken)
             .where(
                 RefreshToken.user_id == user_id,
                 RefreshToken.tenant_id == tenant_id,
-                RefreshToken.is_revoked == False,  # noqa: E712
+                RefreshToken.revoked_at == None,  # noqa: E711
             )
-            .values(is_revoked=True)
+            .values(revoked_at=datetime.now(timezone.utc))
         )
         await self.db.flush()
         return result.rowcount  # type: ignore[return-value]
