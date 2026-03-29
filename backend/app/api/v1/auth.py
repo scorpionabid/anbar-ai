@@ -109,12 +109,15 @@ async def login(
         subject=str(user.id),
         extra={"role": user.role.value, "tenant_id": str(user.tenant_id)},
     )
-    raw_refresh_token, jti, expires_at = create_refresh_token(subject=str(user.id))
+    raw_refresh_token, jti, expires_at = create_refresh_token(
+        subject=str(user.id), extra={"tenant_id": str(user.tenant_id)}
+    )
 
     # ── Refresh token DB-yə yaz ──
     rt_repo = RefreshTokenRepository(db)
     await rt_repo.create(
         RefreshToken(
+            tenant_id=user.tenant_id,
             user_id=user.id,
             token_hash=hash_token(raw_refresh_token),
             jti=jti,
@@ -147,12 +150,13 @@ async def refresh_access_token(
 
     user_id: str | None = payload.get("sub")
     jti: str | None = payload.get("jti")
-    if not user_id or not jti:
+    tenant_id: str | None = payload.get("tenant_id")
+    if not user_id or not jti or not tenant_id:
         raise credentials_exc
 
     # ── DB-dən refresh token-i yoxla ──
     rt_repo = RefreshTokenRepository(db)
-    stored_token = await rt_repo.get_by_jti(jti)
+    stored_token = await rt_repo.get_by_jti(jti, uuid.UUID(tenant_id))
     if not stored_token:
         raise credentials_exc
 
@@ -213,7 +217,7 @@ async def logout(
 
     if jti:
         rt_repo = RefreshTokenRepository(db)
-        stored = await rt_repo.get_by_jti(jti)
+        stored = await rt_repo.get_by_jti(jti, current_user.tenant_id)
         if stored and str(stored.user_id) == str(current_user.id):
             await rt_repo.revoke(stored)
             await db.commit()
@@ -229,6 +233,6 @@ async def logout_all(
 ) -> MessageResponse:
     """İstifadəçinin bütün aktiv refresh token-lərini revoke edir — bütün cihazlardan çıxış."""
     rt_repo = RefreshTokenRepository(db)
-    revoked_count = await rt_repo.revoke_all_for_user(current_user.id)
+    revoked_count = await rt_repo.revoke_all_for_user(current_user.id, current_user.tenant_id)
     await db.commit()
     return MessageResponse(message=f"Logged out from all devices ({revoked_count} sessions revoked)")

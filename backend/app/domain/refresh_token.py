@@ -14,6 +14,12 @@ class RefreshToken(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "refresh_tokens"
 
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

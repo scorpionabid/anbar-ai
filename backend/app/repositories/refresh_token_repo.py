@@ -16,19 +16,21 @@ class RefreshTokenRepository:
         await self.db.refresh(token)
         return token
 
-    async def get_by_jti(self, jti: str) -> RefreshToken | None:
+    async def get_by_jti(self, jti: str, tenant_id: uuid.UUID) -> RefreshToken | None:
         result = await self.db.execute(
             select(RefreshToken).where(
                 RefreshToken.jti == jti,
+                RefreshToken.tenant_id == tenant_id,
                 RefreshToken.is_revoked == False,  # noqa: E712
             )
         )
         return result.scalar_one_or_none()
 
-    async def get_by_token_hash(self, token_hash: str) -> RefreshToken | None:
+    async def get_by_token_hash(self, token_hash: str, tenant_id: uuid.UUID) -> RefreshToken | None:
         result = await self.db.execute(
             select(RefreshToken).where(
                 RefreshToken.token_hash == token_hash,
+                RefreshToken.tenant_id == tenant_id,
                 RefreshToken.is_revoked == False,  # noqa: E712
             )
         )
@@ -39,12 +41,13 @@ class RefreshTokenRepository:
         token.is_revoked = True
         await self.db.flush()
 
-    async def revoke_all_for_user(self, user_id: uuid.UUID) -> int:
+    async def revoke_all_for_user(self, user_id: uuid.UUID, tenant_id: uuid.UUID) -> int:
         """İstifadəçinin bütün aktiv refresh token-lərini revoke et (force logout)."""
         result = await self.db.execute(
             update(RefreshToken)
             .where(
                 RefreshToken.user_id == user_id,
+                RefreshToken.tenant_id == tenant_id,
                 RefreshToken.is_revoked == False,  # noqa: E712
             )
             .values(is_revoked=True)

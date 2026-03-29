@@ -27,17 +27,20 @@ def create_access_token(subject: str, extra: dict | None = None) -> str:
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_refresh_token(subject: str) -> tuple[str, str, datetime]:
+def create_refresh_token(
+    subject: str, extra: dict | None = None
+) -> tuple[str, str, datetime]:
     """
     Refresh token yaradır.
     Returns: (encoded_token, jti, expires_at)
-    JTI və token hash DB-yə yazılmalıdır (auth router-da).
     """
     expire = datetime.now(timezone.utc) + timedelta(
         days=settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
     jti = str(uuid_mod.uuid4())
     payload = {"sub": subject, "exp": expire, "type": "refresh", "jti": jti}
+    if extra:
+        payload.update(extra)
     token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     return token, jti, expire
 
